@@ -27,7 +27,8 @@ function PerspectivePlates:new(o)
     o = o or {}
     setmetatable(o, self)
     self.__index = self 
-	self.nameplateOffsetFactor = 1.45
+	self.nameplateOffsetFactor = 1.92
+    self.pF = 78
 	
 	self.slider1 = 0
 	self.slider2 = 0
@@ -134,10 +135,10 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
 			local wnd = tNameplate.wndNameplate
 
 			local distance = self:DistanceToUnit(unitOwner)
-			local scale = distance / (-100) + 1 -- TODO: do a proper calculation
-			if scale < 0 then 
-				scale = 0
-			end
+            
+            if distance > self.pF then distance = self.pF end
+            
+			local scale = 1 - distance / self.pF -- TODO: do a proper calculation
 			
 			self.wndMain:SetOpacity(0) -- temporary workarround for jumping nameplates
 			
@@ -204,6 +205,7 @@ end
 
 function PerspectivePlates:Slider1_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
 	self.slider1 = fNewValue
+    self.nameplateOffsetFactor = fNewValue
 end
 
 function PerspectivePlates:Slider2_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )

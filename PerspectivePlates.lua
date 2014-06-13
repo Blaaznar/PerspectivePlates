@@ -79,8 +79,6 @@ function PerspectivePlates:OnDocLoaded()
 		Apollo.RegisterSlashCommand("pp", "OnSlashConfig", self)
 		Apollo.RegisterSlashCommand("perspectiveplates", "OnSlashConfig", self)
 		Apollo.RegisterSlashCommand("PerspectivePlates", "OnSlashConfig", self)
-		
-		self.unitPlayer = GameLib.GetPlayerUnit()
 	end
 end
 
@@ -215,7 +213,7 @@ function PerspectivePlates:NameplateRestoreDefaultSize(tNameplate)
 end
 
 function PerspectivePlates:DistanceToUnit(unitOwner)
-	local unitPlayer = self.unitPlayer
+	local unitPlayer = GameLib.GetPlayerUnit()
 
 	if not unitOwner or not unitPlayer then
 	    return 0

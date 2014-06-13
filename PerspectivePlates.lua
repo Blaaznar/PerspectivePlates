@@ -29,10 +29,7 @@ function PerspectivePlates:new(o)
 	
     self.settings = {}
 	self.settings.hideHitpoints = true
-    self.settings.slider1 = 0.4 
-    self.settings.slider2 = 0 
-    self.settings.slider3 = 0 
-    self.settings.slider4 = 0 
+    self.settings.zoom  = 0.4 
 
     return o
 end
@@ -98,7 +95,17 @@ function PerspectivePlates:OnRestore(eType, t)
         return 
     end
 
-    self.settings = t
+	try(function()
+			local settings = table.ShallowCopy(self.settings)
+			table.ShallowMerge(t, settings)
+			
+			-- validate user data
+			assert(settings.zoom > 0 and settings.zoom <= 2)
+			
+			self.settings = settings
+		end,
+		function(e)
+		end)
 end
 
 -----------------------------------------------------------------------------------------------
@@ -155,7 +162,7 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
 
 			if nameplateDefaults == nil then nameplateDefaults = {wnd:GetAnchorOffsets()} end -- todo: read this from a more 'reliable' source
 			
-            local zoom = self.settings.slider1 
+            local zoom = self.settings.zoom 
             local cameraDist = 20 -- how to get to this number??
             local nameplateWidth = nameplateDefaults[2] - nameplateDefaults[1]
             local nameplateOffsetFactor = 1.75
@@ -174,7 +181,7 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
             
 			-- debug
 			--if unitOwner == GameLib.GetTargetUnit() then 
-				--Print(string.format("scale: %f; distance: %f; offset: %f; sliders: %f %f %f %f", scale, distance, nameplateOffset, self.settings.slider1, self.settings.slider2, self.settings.slider3, self.settings.slider4))
+				--Print(string.format("scale: %f; distance: %f; offset: %f;", scale, distance, nameplateOffset))
 			--end
 			
 			self.wndMain:SetOpacity(1) -- temporary workarround for jumping nameplates
@@ -224,11 +231,7 @@ function PerspectivePlates:GenerateModel()
 end
 
 function PerspectivePlates:GenerateView()
-    self.wndMain:FindChild("SliderBar1"):SetValue(self.model.settings.slider1 or 0)
-    self.wndMain:FindChild("SliderBar2"):SetValue(self.model.settings.slider2 or 0)
-    self.wndMain:FindChild("SliderBar3"):SetValue(self.model.settings.slider3 or 0)
-    self.wndMain:FindChild("SliderBar4"):SetValue(self.model.settings.slider4 or 0)
-
+    self.wndMain:FindChild("SbZoom"):SetValue(self.model.settings.zoom or 0)
 
 	self.wndMain:FindChild("ChkHideHitpoints"):SetCheck(self.model.settings.hideHitpoints or false)
 end
@@ -260,21 +263,9 @@ function PerspectivePlates:OnCancel()
 	self.wndMain:Close() -- hide the window
 end
 
-function PerspectivePlates:Slider1_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
-	self.model.settings.slider1 = fNewValue
-	self.settings.slider1 = fNewValue
-end
-
-function PerspectivePlates:Slider2_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
-	self.model.settings.slider2 = fNewValue
-end
-
-function PerspectivePlates:Slider3_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
-	self.model.settings.slider3 = fNewValue
-end
-
-function PerspectivePlates:Slider4_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
-	self.model.settings.slider4 = fNewValue
+function PerspectivePlates:SbZoom_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
+	self.model.settings.zoom = fNewValue
+	self.settings.zoom = fNewValue
 end
 
 function PerspectivePlates:ChkHideHitpoints_OnButtonCheck( wndHandler, wndControl, eMouseButton )

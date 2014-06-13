@@ -18,7 +18,6 @@ local PerspectivePlates = {}
 -----------------------------------------------------------------------------------------------
 -- Constants
 -----------------------------------------------------------------------------------------------
--- e.g. local kiExampleVariableMax = 999
  
 -----------------------------------------------------------------------------------------------
 -- Initialization
@@ -27,16 +26,12 @@ function PerspectivePlates:new(o)
     o = o or {}
     setmetatable(o, self)
     self.__index = self 
-	self.nameplateOffsetFactor = 1.92
-    self.pF = 78
 	
-	self.slider1 = 0
-	self.slider2 = 0
-	self.slider3 = 0
-	self.slider4 = 0
-
-
-    -- initialize variables here
+    self.settings = {}
+    self.settings.slider1 = 1.25 
+    self.settings.slider2 = 0 
+    self.settings.slider3 = 0 
+    self.settings.slider4 = 0 
 
     return o
 end
@@ -82,19 +77,25 @@ function PerspectivePlates:OnDocLoaded()
 		
 	    self.wndMain:Show(false, true)
 	
-		Apollo.RegisterSlashCommand("sp", "OnSlashConfig", self)	
-		
-		--self.wndMain:Invoke()
-
+		Apollo.RegisterSlashCommand("pp", "OnSlashConfig", self)
+		Apollo.RegisterSlashCommand("perspectiveplates", "OnSlashConfig", self)
+		Apollo.RegisterSlashCommand("PerspectivePlates", "OnSlashConfig", self)
 	end
 end
 
-local function PrintObj(obj)
-	if obj then
-		for k,v in pairs(getmetatable(obj)) do
-			Print(k)
-		end
-	end
+function PerspectivePlates:OnSave(eType)
+    if eType ~= GameLib.CodeEnumAddonSaveLevel.Account then return end
+    
+    return self.settings
+end
+
+function PerspectivePlates:OnRestore(eType, t)
+    if eType ~= GameLib.CodeEnumAddonSaveLevel.Account
+    or t == nil then
+        return 
+    end
+
+    self.settings = t
 end
 
 -----------------------------------------------------------------------------------------------
@@ -127,41 +128,38 @@ function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
 		end)
 end
 
-local nameplateDefaults = nil
-
 function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
 	try(function()
 			local unitOwner = tNameplate.unitOwner
 			local wnd = tNameplate.wndNameplate
 
-			local distance = self:DistanceToUnit(unitOwner)
+            local cameraDist = self.settings.slider1 
+            local nameplateWidth = 29.5
+            local nameplateOffsetFactor = 147
             
-            if distance > self.pF then distance = self.pF end
+			local distance = self:DistanceToUnit(unitOwner) + cameraDist + 20
             
-			local scale = 1 - distance / self.pF -- TODO: do a proper calculation
+			local scale = cameraDist * nameplateWidth / distance
 			
 			self.wndMain:SetOpacity(0) -- temporary workarround for jumping nameplates
 			
 			wnd:SetScale(scale)
 			
-            if nameplateDefaults == nil then nameplateDefaults = {wnd:GetAnchorOffsets()} end -- todo: read from a more 'reliable' source
+            if nameplateDefaults == nil then nameplateDefaults = {wnd:GetAnchorOffsets()} end -- todo: read this from a more 'reliable' source
+
+            local nameplateOffset = nameplateOffsetFactor * (1 - scale)
+
+            wnd:SetAnchorOffsets(nameplateDefaults[1] + nameplateOffset, nameplateDefaults[2] + nameplateOffset/2, nameplateDefaults[3] + nameplateOffset, nameplateDefaults[4] + nameplateOffset/2)
             
-            local offset = distance * self.nameplateOffsetFactor
-            local offsetH = distance * self.nameplateOffsetFactor
-
-            wnd:SetAnchorOffsets(nameplateDefaults[1] + offset, nameplateDefaults[2] + offset/2, nameplateDefaults[3] + offset, nameplateDefaults[4] + offset/2)	
-            local nLeft, nTop, nRight, nBottom = wnd:GetAnchorPoints()
-
 			-- debug
-			--if unitOwner == GameLib.GetTargetUnit() then 
-				--Print(string.format("Scale: %f; Offset: %f; Offsets: %d %d %d %d", scale, offsetW, nLeft, nTop, nRight, nBottom))
-				--Print(string.format("scale: %f; distance: %f; sliders: %f %f", scale, distance, self.slider1, self.slider2))
-			--end
+			if unitOwner == GameLib.GetTargetUnit() then 
+				--Print(string.format("scale: %f; distance: %f; offset: %f; sliders: %f %f %f %f", scale, distance, nameplateOffset, self.settings.slider1, self.settings.slider2, self.settings.slider3, self.settings.slider4))
+			end
 			
-			self.wndMain:SetOpacity(1) -- temporary
-			
-			self.hooks[self.addonNameplates].DrawNameplate(luaCaller, tNameplate)
+			self.wndMain:SetOpacity(1) -- temporary workarround for jumping nameplates
 
+            -- Pass the call back to the original method
+			self.hooks[self.addonNameplates].DrawNameplate(luaCaller, tNameplate)
 		end,
 		function(e)
 			Print(tostring(e))
@@ -189,6 +187,11 @@ end
 -- PerspectivePlatesForm Functions
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:OnSlashConfig()
+    self.wndMain:FindChild("SliderBar1"):SetValue(self.settings.slider1 or 0)
+    self.wndMain:FindChild("SliderBar2"):SetValue(self.settings.slider2 or 0)
+    self.wndMain:FindChild("SliderBar3"):SetValue(self.settings.slider3 or 0)
+    self.wndMain:FindChild("SliderBar4"):SetValue(self.settings.slider4 or 0)
+
 	self.wndMain:Invoke()
 end
 
@@ -202,22 +205,20 @@ function PerspectivePlates:OnCancel()
 	self.wndMain:Close() -- hide the window
 end
 
-
 function PerspectivePlates:Slider1_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
-	self.slider1 = fNewValue
-    self.nameplateOffsetFactor = fNewValue
+	self.settings.slider1 = fNewValue
 end
 
 function PerspectivePlates:Slider2_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
-	self.slider2 = fNewValue
+	self.settings.slider2 = fNewValue
 end
 
 function PerspectivePlates:Slider3_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
-	self.slider3 = fNewValue
+	self.settings.slider3 = fNewValue
 end
 
 function PerspectivePlates:Slider4_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
-	self.slider4 = fNewValue
+	self.settings.slider4 = fNewValue
 end
 
 -----------------------------------------------------------------------------------------------

@@ -100,7 +100,9 @@ function PerspectivePlates:OnRestore(eType, t)
 			
 			-- validate user data
 			assert(settings.zoom > 0 and settings.zoom <= 2)
-			assert(type(settings.perspectiveEnabled ) == "boolean")
+			assert(type(settings.perspectiveEnabled) == "boolean")
+            assert(type(settings.hideHitpoints) == "boolean")
+            
 			
 			self.settings = settings
 		end,
@@ -181,20 +183,17 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
             
 			local scale = zoom * nameplateWidth / distance
 			
-			self.wndMain:SetOpacity(0) -- temporary workarround for jumping nameplates
-			
 			wnd:SetScale(scale)
 			
             local nameplateOffset = nameplateOffsetFactor * nameplateWidth * (1 - scale)
 
+            -- Oddly enough, this is the biggest hit on performance - alternatives?
             wnd:SetAnchorOffsets(nameplateDefaults[1] + nameplateOffset, nameplateDefaults[2] + nameplateOffset/2, nameplateDefaults[3] + nameplateOffset, nameplateDefaults[4] + nameplateOffset/2)
-            
+
 			-- debug
 			--if unitOwner == GameLib.GetTargetUnit() then 
 				--Print(string.format("scale: %f; distance: %f; offset: %f;", scale, distance, nameplateOffset))
 			--end
-			
-			self.wndMain:SetOpacity(1) -- temporary workarround for jumping nameplates
 		end,
 		function(e)
 			Print(tostring(e))

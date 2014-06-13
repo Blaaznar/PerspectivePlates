@@ -28,6 +28,7 @@ function PerspectivePlates:new(o)
     self.__index = self 
 	
     self.settings = {}
+	self.settings.perspectiveEnabled = true
 	self.settings.hideHitpoints = true
     self.settings.zoom  = 0.4 
 
@@ -101,6 +102,7 @@ function PerspectivePlates:OnRestore(eType, t)
 			
 			-- validate user data
 			assert(settings.zoom > 0 and settings.zoom <= 2)
+			assert(type(settings.perspectiveEnabled ) == "boolean")
 			
 			self.settings = settings
 		end,
@@ -156,6 +158,16 @@ function PerspectivePlates:ShowHealthNumber(idUnit)
 end
 
 function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
+	
+	if self.settings.perspectiveEnabled then
+		self:NameplatePerspectiveResize(tNameplate)
+	end
+        
+    -- Pass the call back to the original method
+    self.hooks[self.addonNameplates].DrawNameplate(luaCaller, tNameplate)
+end
+
+function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
 	try(function()
 			local unitOwner = tNameplate.unitOwner
 			local wnd = tNameplate.wndNameplate
@@ -189,9 +201,17 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
 		function(e)
 			Print(tostring(e))
 		end)
-        
-    -- Pass the call back to the original method
-    self.hooks[self.addonNameplates].DrawNameplate(luaCaller, tNameplate)
+end
+
+function PerspectivePlates:NameplateRestoreDefaultSize(tNameplate)
+	try(function()
+			local wnd = tNameplate.wndNameplate
+			wnd:SetScale(1)
+            wnd:SetAnchorOffsets(nameplateDefaults[1], nameplateDefaults[2], nameplateDefaults[3], nameplateDefaults[4])
+		end,
+		function(e)
+			Print(tostring(e))
+		end)
 end
 
 function PerspectivePlates:DistanceToUnit(unitOwner)
@@ -233,19 +253,22 @@ end
 function PerspectivePlates:GenerateView()
     self.wndMain:FindChild("SbZoom"):SetValue(self.model.settings.zoom or 0)
 
-	self.wndMain:FindChild("ChkHideHitpoints"):SetCheck(self.model.settings.hideHitpoints or false)
+	self.wndMain:FindChild("ChkHideHitpoints"):SetCheck(self.model.settings.hideHitpoints)
+	self.wndMain:FindChild("ChkPerspective"):SetCheck(self.model.settings.perspectiveEnabled)
 end
 
 -- when the OK button is clicked
 function PerspectivePlates:OnOK()
 	try(function()
-		    if self.model.settings.hideHitpoints then 
-		        for idx, tNameplate in pairs(self.addonNameplates.arUnit2Nameplate) do
+			for idx, tNameplate in pairs(self.addonNameplates.arUnit2Nameplate) do
+			    if self.model.settings.hideHitpoints then 
 					self:HideHealthNumber(idx)
-		        end
-		    else
-		        for idx, tNameplate in pairs(self.addonNameplates.arUnit2Nameplate) do
+		        else
 					self:ShowHealthNumber(idx)
+				end
+				
+				if not self.model.settings.perspectiveEnabled then
+					self:NameplateRestoreDefaultSize(tNameplate)
 				end
 		    end
 				
@@ -274,6 +297,14 @@ end
 
 function PerspectivePlates:ChkHideHitpoints_OnButtonUnCheck( wndHandler, wndControl, eMouseButton )
 	self.model.settings.hideHitpoints = false
+end
+
+function PerspectivePlates:ChkPerspective_OnButtonCheck( wndHandler, wndControl, eMouseButton )
+	self.model.settings.perspectiveEnabled = true
+end
+
+function PerspectivePlates:ChkPerspective_OnButtonUnCheck( wndHandler, wndControl, eMouseButton )
+	self.model.settings.perspectiveEnabled = false
 end
 
 -----------------------------------------------------------------------------------------------

@@ -28,7 +28,8 @@ function PerspectivePlates:new(o)
     self.__index = self 
 	
     self.settings = {}
-    self.settings.slider1 = 1.25 
+	self.settings.hideHitpoints = true
+    self.settings.slider1 = 0.4 
     self.settings.slider2 = 0 
     self.settings.slider3 = 0 
     self.settings.slider4 = 0 
@@ -80,6 +81,8 @@ function PerspectivePlates:OnDocLoaded()
 		Apollo.RegisterSlashCommand("pp", "OnSlashConfig", self)
 		Apollo.RegisterSlashCommand("perspectiveplates", "OnSlashConfig", self)
 		Apollo.RegisterSlashCommand("PerspectivePlates", "OnSlashConfig", self)
+		
+		self.unitPlayer = GameLib.GetPlayerUnit()
 	end
 end
 
@@ -115,16 +118,33 @@ function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
 	end
 	
 	self.hooks[self.addonNameplates].OnUnitCreated(luaCaller, unitNew)
-	
+
+	if not self.settings.hideHitpoints then 
+		return 
+	end	
+		
+    self:HideHealthNumber(idUnit)
+end
+
+function PerspectivePlates:HideHealthNumber(idUnit)
 	try(function()
-			local idUnit = unitNew:GetId()
 			local wnd = self.addonNameplates.arUnit2Nameplate[idUnit].wndNameplate
-			
-			-- Hide health numbers (cant see the bloody healthbars from them...)
 			local healthHealthLabel = wnd:FindChild("Container:Health:HealthLabel")
 			healthHealthLabel:SetOpacity(0.0)
 		end,
 		function(e)
+            Print(tostring(e))
+		end)
+end
+
+function PerspectivePlates:ShowHealthNumber(idUnit)
+	try(function()
+			local wnd = self.addonNameplates.arUnit2Nameplate[idUnit].wndNameplate
+			local healthHealthLabel = wnd:FindChild("Container:Health:HealthLabel")
+			healthHealthLabel:SetOpacity(1.0)
+		end,
+		function(e)
+            Print(tostring(e))
 		end)
 end
 
@@ -133,71 +153,106 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
 			local unitOwner = tNameplate.unitOwner
 			local wnd = tNameplate.wndNameplate
 
-            local cameraDist = self.settings.slider1 
-            local nameplateWidth = 29.5
-            local nameplateOffsetFactor = 147
+			if nameplateDefaults == nil then nameplateDefaults = {wnd:GetAnchorOffsets()} end -- todo: read this from a more 'reliable' source
+			
+            local zoom = self.settings.slider1 
+            local cameraDist = 20 -- how to get to this number??
+            local nameplateWidth = nameplateDefaults[2] - nameplateDefaults[1]
+            local nameplateOffsetFactor = 1.75
             
-			local distance = self:DistanceToUnit(unitOwner) + cameraDist + 20
+			local distance = self:DistanceToUnit(unitOwner) + zoom + cameraDist
             
-			local scale = cameraDist * nameplateWidth / distance
+			local scale = zoom * nameplateWidth / distance
 			
 			self.wndMain:SetOpacity(0) -- temporary workarround for jumping nameplates
 			
 			wnd:SetScale(scale)
 			
-            if nameplateDefaults == nil then nameplateDefaults = {wnd:GetAnchorOffsets()} end -- todo: read this from a more 'reliable' source
-
-            local nameplateOffset = nameplateOffsetFactor * (1 - scale)
+            local nameplateOffset = nameplateOffsetFactor * nameplateWidth * (1 - scale)
 
             wnd:SetAnchorOffsets(nameplateDefaults[1] + nameplateOffset, nameplateDefaults[2] + nameplateOffset/2, nameplateDefaults[3] + nameplateOffset, nameplateDefaults[4] + nameplateOffset/2)
             
 			-- debug
-			if unitOwner == GameLib.GetTargetUnit() then 
+			--if unitOwner == GameLib.GetTargetUnit() then 
 				--Print(string.format("scale: %f; distance: %f; offset: %f; sliders: %f %f %f %f", scale, distance, nameplateOffset, self.settings.slider1, self.settings.slider2, self.settings.slider3, self.settings.slider4))
-			end
+			--end
 			
 			self.wndMain:SetOpacity(1) -- temporary workarround for jumping nameplates
-
-            -- Pass the call back to the original method
-			self.hooks[self.addonNameplates].DrawNameplate(luaCaller, tNameplate)
 		end,
 		function(e)
 			Print(tostring(e))
 		end)
+        
+    -- Pass the call back to the original method
+    self.hooks[self.addonNameplates].DrawNameplate(luaCaller, tNameplate)
 end
 
-function PerspectivePlates:DistanceToUnit(unit) -- borrowed from deadlock...
-	local uPlayer = GameLib.GetPlayerUnit()
+function PerspectivePlates:DistanceToUnit(unitOwner)
+	local unitPlayer = self.unitPlayer
+
+	if not unitOwner or not unitPlayer then
+	    return 0
+	end
+
+	tPosTarget = unitOwner:GetPosition()
+	tPosPlayer = unitPlayer:GetPosition()
+
+	if tPosTarget == nil then
+		return 0
+	end
 	
-	if (unit == nil) then return 0 end 	
-	if (uPlayer == nil) then return 0 end 
- 
-	local posPlayer = uPlayer:GetPosition()  
-	
-	if unit:GetPosition() == nil then return 0 end
-	local posTarget = unit:GetPosition() 
-	local nDeltaX = posTarget.x - posPlayer.x
-	local nDeltaY = posTarget.y - posPlayer.y
-	local nDeltaZ = posTarget.z - posPlayer.z
-		
-	return math.sqrt(math.pow(nDeltaX, 2) + math.pow(nDeltaY, 2) + math.pow(nDeltaZ, 2))
-end 
+	local nDeltaX = tPosTarget.x - tPosPlayer.x
+	local nDeltaY = tPosTarget.y - tPosPlayer.y
+	local nDeltaZ = tPosTarget.z - tPosPlayer.z
+
+	return math.sqrt((nDeltaX * nDeltaX) + (nDeltaY * nDeltaY) + (nDeltaZ * nDeltaZ))
+end
 
 -----------------------------------------------------------------------------------------------
 -- PerspectivePlatesForm Functions
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:OnSlashConfig()
-    self.wndMain:FindChild("SliderBar1"):SetValue(self.settings.slider1 or 0)
-    self.wndMain:FindChild("SliderBar2"):SetValue(self.settings.slider2 or 0)
-    self.wndMain:FindChild("SliderBar3"):SetValue(self.settings.slider3 or 0)
-    self.wndMain:FindChild("SliderBar4"):SetValue(self.settings.slider4 or 0)
+	self:GenerateModel()	
+	self:GenerateView()
 
 	self.wndMain:Invoke()
 end
 
+function PerspectivePlates:GenerateModel()
+	self.model = {}
+	self.model.settings = table.ShallowCopy(self.settings)
+end
+
+function PerspectivePlates:GenerateView()
+    self.wndMain:FindChild("SliderBar1"):SetValue(self.model.settings.slider1 or 0)
+    self.wndMain:FindChild("SliderBar2"):SetValue(self.model.settings.slider2 or 0)
+    self.wndMain:FindChild("SliderBar3"):SetValue(self.model.settings.slider3 or 0)
+    self.wndMain:FindChild("SliderBar4"):SetValue(self.model.settings.slider4 or 0)
+
+
+	self.wndMain:FindChild("ChkHideHitpoints"):SetCheck(self.model.settings.hideHitpoints or false)
+end
+
 -- when the OK button is clicked
 function PerspectivePlates:OnOK()
-	self.wndMain:Close() -- hide the window
+	try(function()
+		    if self.model.settings.hideHitpoints then 
+		        for idx, tNameplate in pairs(self.addonNameplates.arUnit2Nameplate) do
+					self:HideHealthNumber(idx)
+		        end
+		    else
+		        for idx, tNameplate in pairs(self.addonNameplates.arUnit2Nameplate) do
+					self:ShowHealthNumber(idx)
+				end
+		    end
+				
+			self.settings = self.model.settings
+
+			self.wndMain:Close() -- hide the window
+		end,
+		function(e)
+			Print(tostring(e))
+		end)
 end
 
 -- when the Cancel button is clicked
@@ -206,19 +261,28 @@ function PerspectivePlates:OnCancel()
 end
 
 function PerspectivePlates:Slider1_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
+	self.model.settings.slider1 = fNewValue
 	self.settings.slider1 = fNewValue
 end
 
 function PerspectivePlates:Slider2_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
-	self.settings.slider2 = fNewValue
+	self.model.settings.slider2 = fNewValue
 end
 
 function PerspectivePlates:Slider3_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
-	self.settings.slider3 = fNewValue
+	self.model.settings.slider3 = fNewValue
 end
 
 function PerspectivePlates:Slider4_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
-	self.settings.slider4 = fNewValue
+	self.model.settings.slider4 = fNewValue
+end
+
+function PerspectivePlates:ChkHideHitpoints_OnButtonCheck( wndHandler, wndControl, eMouseButton )
+	self.model.settings.hideHitpoints = true
+end
+
+function PerspectivePlates:ChkHideHitpoints_OnButtonUnCheck( wndHandler, wndControl, eMouseButton )
+	self.model.settings.hideHitpoints = false
 end
 
 -----------------------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Addon Author="Blaaznar" APIVersion="8" Name="PerspectivePlates" Description="Reduces the size of nameplates the further they are" Version="0.0.3">
+<Addon Author="Blaaznar" APIVersion="8" Name="PerspectivePlates" Description="Reduces the size of nameplates the further they are" Version="0.0.4">
     <Script Name="GeminiHook.lua"/>
     <Script Name="LibLuaUtils.lua"/>
     <Script Name="PerspectivePlates.lua"/>

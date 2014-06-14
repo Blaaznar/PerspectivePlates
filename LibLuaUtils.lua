@@ -1,23 +1,5 @@
 local LuaUtils = {}
 
-function table.ExistsItem(l, f) -- find element v of l satisfying f(v)
-  for _, v in ipairs(l) do
-    if f(v) then
-      return true
-    end
-  end
-  return false
-end
-
-function table.FindItem(l, f) -- find element v of l satisfying f(v)
-  for _, v in ipairs(l) do
-    if f(v) then
-      return v
-    end
-  end
-  return nil
-end
-
 function table.ShallowCopy(t)
 	local t2 = {}
 	
@@ -33,19 +15,7 @@ function table.ShallowMerge(table1, intoTable2)
 	end
 end
 
--- try/catch function definition
-function try(tryFunction, catchFunction)
-    local pack = function (...) return arg end
-    local pcallResults = pack(pcall(tryFunction))
-    if not pcallResults[1] and catchFunction ~= nil then
-        catchFunction(pcallResults[2])
-    else
-        table.remove(pcallResults, 1)
-        return unpack(pcallResults)
-    end
-end
-
-function MeasureExecutionTime(testFunction, iterations)
+function LuaUtils:MeasureExecutionTime(testFunction, iterations)
     iterations = iterations or 1
     
     local x = os.clock()

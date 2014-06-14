@@ -30,7 +30,7 @@ function PerspectivePlates:new(o)
     self.settings = {}
 	self.settings.perspectiveEnabled = true
 	self.settings.hideHitpoints = true
-    self.settings.zoom  = 0.4 
+    self.settings.zoom  = 0.3 
 
     return o
 end
@@ -94,15 +94,16 @@ function PerspectivePlates:OnRestore(eType, t)
         return 
     end
 
-	try(function()
+	xpcall(function()
 			local settings = table.ShallowCopy(self.settings)
 			table.ShallowMerge(t, settings)
 			
 			-- validate user data
-			assert(settings.zoom > 0 and settings.zoom <= 2)
-			assert(type(settings.perspectiveEnabled) == "boolean")
+            assert(type(settings.zoom) == "number")
+            assert(type(settings.perspectiveEnabled) == "boolean")
             assert(type(settings.hideHitpoints) == "boolean")
             
+			assert(settings.zoom > 0 and settings.zoom <= 2)
 			
 			self.settings = settings
 		end,
@@ -136,7 +137,7 @@ function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
 end
 
 function PerspectivePlates:HideHealthNumber(idUnit)
-	try(function()
+	xpcall(function()
 			local wnd = self.addonNameplates.arUnit2Nameplate[idUnit].wndNameplate
 			local healthHealthLabel = wnd:FindChild("Container:Health:HealthLabel")
 			healthHealthLabel:SetOpacity(0.0)
@@ -147,7 +148,7 @@ function PerspectivePlates:HideHealthNumber(idUnit)
 end
 
 function PerspectivePlates:ShowHealthNumber(idUnit)
-	try(function()
+	xpcall(function()
 			local wnd = self.addonNameplates.arUnit2Nameplate[idUnit].wndNameplate
 			local healthHealthLabel = wnd:FindChild("Container:Health:HealthLabel")
 			healthHealthLabel:SetOpacity(1.0)
@@ -168,7 +169,7 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
 end
 
 function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
-	try(function()
+	xpcall(function()
 			local unitOwner = tNameplate.unitOwner
 			local wnd = tNameplate.wndNameplate
 
@@ -201,7 +202,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
 end
 
 function PerspectivePlates:NameplateRestoreDefaultSize(tNameplate)
-	try(function()
+	xpcall(function()
 			local wnd = tNameplate.wndNameplate
 			wnd:SetScale(1)
             wnd:SetAnchorOffsets(nameplateDefaults[1], nameplateDefaults[2], nameplateDefaults[3], nameplateDefaults[4])
@@ -256,7 +257,7 @@ end
 
 -- when the OK button is clicked
 function PerspectivePlates:OnOK()
-	try(function()
+	xpcall(function()
 			for idx, tNameplate in pairs(self.addonNameplates.arUnit2Nameplate) do
 			    if self.model.settings.hideHitpoints then 
 					self:HideHealthNumber(idx)

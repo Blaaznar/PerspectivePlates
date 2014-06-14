@@ -211,7 +211,9 @@ function PerspectivePlates:NameplateRestoreDefaultSize(tNameplate)
 	xpcall(function()
 			local wnd = tNameplate.wndNameplate
 			wnd:SetScale(1)
-            wnd:SetAnchorOffsets(nameplateDefaults[1], nameplateDefaults[2], nameplateDefaults[3], nameplateDefaults[4])
+            
+            local bounds = self.nameplateDefaultBounds
+            wnd:SetAnchorOffsets(bounds.left, bounds.top, bounds.right, bounds.bottom)
 		end,
 		function(e)
 			Print(tostring(e))

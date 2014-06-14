@@ -32,6 +32,12 @@ function PerspectivePlates:new(o)
 	self.settings.hideHitpoints = true
     self.settings.zoom  = 0.3 
 
+    self.nameplateDefaultBounds = {} -- todo: read from nameplate addon data
+    self.nameplateDefaultBounds.left = -150
+    self.nameplateDefaultBounds.top = -66
+    self.nameplateDefaultBounds.right = 150
+    self.nameplateDefaultBounds.bottom =  30
+    
     return o
 end
 
@@ -54,7 +60,7 @@ function PerspectivePlates:OnLoad()
 	self.xmlDoc:RegisterCallback("OnDocLoaded", self)
 	
 	self.addonNameplates = Apollo.GetAddon("Nameplates")
-	
+    
 	Apollo.GetPackage("Gemini:Hook-1.0").tPackage:Embed(self)
 
   	-- Hooks
@@ -173,27 +179,27 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
 			local unitOwner = tNameplate.unitOwner
 			local wnd = tNameplate.wndNameplate
 
-			if nameplateDefaults == nil then nameplateDefaults = {wnd:GetAnchorOffsets()} end -- todo: read this from a more 'reliable' source
-			
+			local bounds = self.nameplateDefaultBounds
+            
             local zoom = self.settings.zoom 
             local cameraDist = 20 -- how to get to this number??
-            local nameplateWidth = nameplateDefaults[2] - nameplateDefaults[1]
-            local nameplateOffsetFactor = 1.75
+            local nameplateWidth = bounds.right - bounds.left
             
-			local distance = self:DistanceToUnit(unitOwner) + zoom + cameraDist
+			local distance = self:DistanceToUnit(unitOwner) + cameraDist
             
-			local scale = zoom * nameplateWidth / distance
+			local scale = zoom * 0.2 * nameplateWidth / distance
 			
 			wnd:SetScale(scale)
 			
-            local nameplateOffset = nameplateOffsetFactor * nameplateWidth * (1 - scale)
+            local nameplateOffset = nameplateWidth * (1 - scale) / 2
 
             -- Oddly enough, this is the biggest hit on performance - alternatives?
-            wnd:SetAnchorOffsets(nameplateDefaults[1] + nameplateOffset, nameplateDefaults[2] + nameplateOffset/2, nameplateDefaults[3] + nameplateOffset, nameplateDefaults[4] + nameplateOffset/2)
+            wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffset/2.5, bounds.right + nameplateOffset, bounds.bottom + nameplateOffset/2.5)
 
 			-- debug
 			--if unitOwner == GameLib.GetTargetUnit() then 
 				--Print(string.format("scale: %f; distance: %f; offset: %f;", scale, distance, nameplateOffset))
+                --Print(string.format("%f; %f; %f; %f;", wnd:GetAnchorOffsets()))
 			--end
 		end,
 		function(e)

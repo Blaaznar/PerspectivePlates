@@ -181,6 +181,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
 
 			local bounds = self.nameplateDefaultBounds
             
+            local sensitivity = 0.005
             local zoom = self.settings.zoom 
             local cameraDist = 20 -- how to get to this number??
             local nameplateWidth = bounds.right - bounds.left
@@ -189,11 +190,13 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
             
 			local scale = zoom * 0.2 * nameplateWidth / distance
 			
+            if math.abs(wnd:GetScale() - scale) < sensitivity then return end -- greatly increases performance
+            
 			wnd:SetScale(scale)
 			
             local nameplateOffset = nameplateWidth * (1 - scale) / 2
 
-            -- Oddly enough, this is the biggest hit on performance - alternatives?
+            -- Oddly enough, this is the biggest hit on performance
             wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffset/2.5, bounds.right + nameplateOffset, bounds.bottom + nameplateOffset/2.5)
 
 			-- debug

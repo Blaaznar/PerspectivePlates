@@ -175,41 +175,35 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
 end
 
 function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
-    -- will remove xpcall at a later stage as it has a high performance cost
-	xpcall(function()
-			local unitOwner = tNameplate.unitOwner
-			local wnd = tNameplate.wndNameplate
+	-- xpcall(function() -- has a high performance cost, will use only for debugging
+    local unitOwner = tNameplate.unitOwner
+    local wnd = tNameplate.wndNameplate
 
-			local bounds = self.nameplateDefaultBounds
-            
-            local sensitivity = 0.01
-            local zoom = self.settings.zoom 
-            local cameraDist = 20 -- how to get to this number??
-            local nameplateWidth = bounds.right - bounds.left
-            
-			local distance = self:DistanceToUnit(unitOwner) + cameraDist
-            
-			local scale = math.floor(zoom * 0.2 * nameplateWidth / distance / sensitivity) * sensitivity
-			
-            -- lower the sensitivity, the bigger is the performance hit
-            if math.abs(wnd:GetScale() - scale) < sensitivity then return end 
-            
-			wnd:SetScale(scale)
-			
-            local nameplateOffset = nameplateWidth * (1 - scale) / 2
+    local bounds = self.nameplateDefaultBounds
+    
+    local sensitivity = 0.01
+    local zoom = self.settings.zoom 
+    local cameraDist = 20 -- how to get to this number??
+    local nameplateWidth = bounds.right - bounds.left
+    
+    local distance = self:DistanceToUnit(unitOwner) + cameraDist
+    
+    local scale = math.floor(zoom * 0.2 * nameplateWidth / distance / sensitivity) * sensitivity
+    
+    -- lower the sensitivity, the bigger is the performance hit
+    if math.abs(wnd:GetScale() - scale) < sensitivity then return end 
+    
+    wnd:SetScale(scale)
+    
+    local nameplateOffset = nameplateWidth * (1 - scale) / 2
 
-            -- Oddly enough, this is the biggest hit on performance
-            wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffset/2.5, bounds.right + nameplateOffset, bounds.bottom + nameplateOffset/2.5)
+    -- Oddly enough, this is the biggest hit on performance
+    wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffset/2.5, bounds.right + nameplateOffset, bounds.bottom + nameplateOffset/2.5)
 
-			-- debug
-			--if unitOwner == GameLib.GetTargetUnit() then 
-				--Print(string.format("scale: %f; distance: %f; offset: %f;", scale, distance, nameplateOffset))
-                --Print(string.format("%f; %f; %f; %f;", wnd:GetAnchorOffsets()))
-			--end
-		end,
-		function(e)
-			Print(tostring(e))
-		end)
+    -- Debug
+    --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("scale: %f; distance: %f; offset: %f;", scale, distance, nameplateOffset)) end
+
+    --end, function(e) Print(tostring(e)) end) -- xpcall
 end
 
 function PerspectivePlates:NameplateRestoreDefaultSize(tNameplate)

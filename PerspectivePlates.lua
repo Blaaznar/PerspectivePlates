@@ -175,22 +175,24 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
 end
 
 function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
+    -- will remove xpcall at a later stage as it has a high performance cost
 	xpcall(function()
 			local unitOwner = tNameplate.unitOwner
 			local wnd = tNameplate.wndNameplate
 
 			local bounds = self.nameplateDefaultBounds
             
-            local sensitivity = 0.005
+            local sensitivity = 0.01
             local zoom = self.settings.zoom 
             local cameraDist = 20 -- how to get to this number??
             local nameplateWidth = bounds.right - bounds.left
             
 			local distance = self:DistanceToUnit(unitOwner) + cameraDist
             
-			local scale = zoom * 0.2 * nameplateWidth / distance
+			local scale = math.floor(zoom * 0.2 * nameplateWidth / distance / sensitivity) * sensitivity
 			
-            if math.abs(wnd:GetScale() - scale) < sensitivity then return end -- greatly increases performance
+            -- lower the sensitivity, the bigger is the performance hit
+            if math.abs(wnd:GetScale() - scale) < sensitivity then return end 
             
 			wnd:SetScale(scale)
 			

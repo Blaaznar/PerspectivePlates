@@ -46,8 +46,8 @@ function PerspectivePlates:new(o)
 end
 
 function PerspectivePlates:Init()
-	local bHasConfigureFunction = false
-	local strConfigureButtonText = ""
+	local bHasConfigureFunction = true
+	local strConfigureButtonText = "PerspectivePlates"
 	local tDependencies = {
 		-- "UnitOrPackageName",
 	}
@@ -122,6 +122,11 @@ function PerspectivePlates:OnRestore(eType, t)
 		end,
 		function(e)
 		end)
+end
+
+-- on Configure button from Addons window
+function PerspectivePlates:OnConfigure()
+    self:OnSlashConfig()
 end
 
 -----------------------------------------------------------------------------------------------

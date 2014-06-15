@@ -2,6 +2,10 @@
 -- Client Lua Script for PerspectivePlates
 -- Copyright (c) NCsoft. All rights reserved
 -----------------------------------------------------------------------------------------------
+-- To subscribe your own nameplate addon add this just before showing the nameplate 
+-- window in your DrawNameplate function:
+-- Event_FireGenericEvent("GenericEvent_PerspectivePlates_PerspectiveResize", tNameplate)
+-----------------------------------------------------------------------------------------------
  
 require "Window"
 
@@ -59,13 +63,16 @@ function PerspectivePlates:OnLoad()
 	self.xmlDoc = XmlDoc.CreateFromFile("PerspectivePlates.xml")
 	self.xmlDoc:RegisterCallback("OnDocLoaded", self)
 	
-	self.addonNameplates = Apollo.GetAddon("Nameplates")
-    
 	Apollo.GetPackage("Gemini:Hook-1.0").tPackage:Embed(self)
+    
+    Apollo.RegisterEventHandler("GenericEvent_PerspectivePlates_PerspectiveResize", "OnRequestedResize", self)
 
   	-- Hooks
-	self:RawHook(self.addonNameplates, "OnUnitCreated")
-	self:RawHook(self.addonNameplates, "DrawNameplate")
+    self.addonNameplates = Apollo.GetAddon("Nameplates")
+    if self.addonNameplates ~= nil then
+        self:RawHook(self.addonNameplates, "OnUnitCreated")
+        self:RawHook(self.addonNameplates, "DrawNameplate")
+    end
 end
 
 -----------------------------------------------------------------------------------------------
@@ -174,8 +181,17 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
     self.hooks[self.addonNameplates].DrawNameplate(luaCaller, tNameplate)
 end
 
+-- Event handler for other nameplate addons
+function PerspectivePlates:OnRequestedResize(tNameplate)
+    if self.settings.perspectiveEnabled then
+        self:NameplatePerspectiveResize(tNameplate)
+    end
+end
+
 function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
 	-- xpcall(function() -- has a high performance cost, will use only for debugging
+    if tNameplate == nil then return end
+
     local unitOwner = tNameplate.unitOwner
     local wnd = tNameplate.wndNameplate
 
@@ -184,7 +200,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
     local sensitivity = 0.01
     local zoom = self.settings.zoom 
     local cameraDist = 20 -- how to get to this number??
-    local nameplateWidth = bounds.right - bounds.left
+    local nameplateWidth = bounds.right - bounds.left -- the nameplate is left-anchored to the unit, I just need it's width
     
     local distance = self:DistanceToUnit(unitOwner) + cameraDist
     
@@ -265,17 +281,19 @@ end
 -- when the OK button is clicked
 function PerspectivePlates:OnOK()
 	xpcall(function()
-			for idx, tNameplate in pairs(self.addonNameplates.arUnit2Nameplate) do
-			    if self.model.settings.hideHitpoints then 
-					self:HideHealthNumber(idx)
-		        else
-					self:ShowHealthNumber(idx)
-				end
-				
-				if not self.model.settings.perspectiveEnabled then
-					self:NameplateRestoreDefaultSize(tNameplate)
-				end
-		    end
+            if self.addonNameplates ~= nil then
+                for idx, tNameplate in pairs(self.addonNameplates.arUnit2Nameplate) do
+                    if self.model.settings.hideHitpoints then 
+                        self:HideHealthNumber(idx)
+                    else
+                        self:ShowHealthNumber(idx)
+                    end
+                    
+                    if not self.model.settings.perspectiveEnabled then
+                        self:NameplateRestoreDefaultSize(tNameplate)
+                    end
+                end
+            end
 				
 			self.settings = self.model.settings
 

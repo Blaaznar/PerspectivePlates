@@ -66,6 +66,7 @@ function PerspectivePlates:OnLoad()
 	Apollo.GetPackage("Gemini:Hook-1.0").tPackage:Embed(self)
     
     Apollo.RegisterEventHandler("GenericEvent_PerspectivePlates_PerspectiveResize", "OnRequestedResize", self)
+    Apollo.RegisterEventHandler("GenericEvent_PerspectivePlates_RegisterOffsets", "OnRegisterDefaultBounds", self)
 
   	-- Hooks
     self.addonNameplates = Apollo.GetAddon("Nameplates")
@@ -186,11 +187,24 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
     self.hooks[self.addonNameplates].DrawNameplate(luaCaller, tNameplate)
 end
 
--- Event handler for other nameplate addons
-function PerspectivePlates:OnRequestedResize(tNameplate)
+-- Event handlers for other nameplate addons
+function PerspectivePlates:OnRequestedResize(tNameplate, t)
     if self.settings.perspectiveEnabled then
+        Print(tostring(t))
         self:NameplatePerspectiveResize(tNameplate)
     end
+end
+
+function PerspectivePlates:OnRegisterDefaultBounds(left, top, right, bottom)
+    assert(type(left) == "number")
+    assert(type(top) == "number")
+    assert(type(right) == "number")
+    assert(type(bottom) == "number")
+    
+    self.nameplateDefaultBounds.left = left
+    self.nameplateDefaultBounds.top = top
+    self.nameplateDefaultBounds.right = right
+    self.nameplateDefaultBounds.bottom = bottom
 end
 
 function PerspectivePlates:NameplatePerspectiveResize(tNameplate)

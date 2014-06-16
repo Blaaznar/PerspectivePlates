@@ -208,7 +208,7 @@ function PerspectivePlates:OnRegisterDefaultBounds(left, top, right, bottom)
 end
 
 function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
-	-- xpcall(function() -- has a high performance cost, will use only for debugging
+	-- xpcall(function() -- has a high performance cost, use only for debugging
     if tNameplate == nil then return end
 
     local unitOwner = tNameplate.unitOwner
@@ -218,8 +218,8 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
     
     local sensitivity = 0.01
     local zoom = self.settings.zoom 
-    local cameraDist = 20 -- how to get to this number??
-    local nameplateWidth = bounds.right - bounds.left -- the nameplate is left-anchored to the unit, I just need it's width
+    local cameraDist = 20 -- how to get to the actual camera distance?
+    local nameplateWidth = bounds.right - bounds.left -- the nameplate is left-anchored to the unit, I just need it's width for setting scale
     
     local distance = self:DistanceToUnit(unitOwner) + cameraDist
     
@@ -230,14 +230,14 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
     
     wnd:SetScale(scale)
     
-    local nameplateOffset = nameplateWidth * (1 - scale) / 2
+    local nameplateOffset = nameplateWidth * (1 - scale) * 0.5
+    local nameplateOffsetV = bounds.top * (1 - scale)
 
     -- Oddly enough, this is the biggest hit on performance
-    wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffset/2.5, bounds.right + nameplateOffset, bounds.bottom + nameplateOffset/2.5)
+    wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top - nameplateOffsetV, bounds.right + nameplateOffset, bounds.bottom - nameplateOffsetV)
 
     -- Debug
     --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("scale: %f; distance: %f; offset: %f;", scale, distance, nameplateOffset)) end
-
     --end, function(e) Print(tostring(e)) end) -- xpcall
 end
 

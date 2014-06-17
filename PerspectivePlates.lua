@@ -190,7 +190,6 @@ end
 -- Event handlers for other nameplate addons
 function PerspectivePlates:OnRequestedResize(tNameplate, t)
     if self.settings.perspectiveEnabled then
-        Print(tostring(t))
         self:NameplatePerspectiveResize(tNameplate)
     end
 end

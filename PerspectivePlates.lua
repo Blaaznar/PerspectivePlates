@@ -34,7 +34,8 @@ function PerspectivePlates:new(o)
     self.settings = {}
 	self.settings.perspectiveEnabled = true
 	self.settings.hideHitpoints = true
-    self.settings.zoom  = 0.3 
+    self.settings.zoom = 0.3 
+	self.settings.deadZoneDist = 0
 
     self.nameplateDefaultBounds = {} -- todo: read from nameplate addon data
     self.nameplateDefaultBounds.left = -150
@@ -188,7 +189,7 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
 end
 
 -- Event handlers for other nameplate addons
-function PerspectivePlates:OnRequestedResize(tNameplate, t)
+function PerspectivePlates:OnRequestedResize(tNameplate)
     if self.settings.perspectiveEnabled then
         self:NameplatePerspectiveResize(tNameplate)
     end
@@ -216,13 +217,18 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
     local bounds = self.nameplateDefaultBounds
     
     local sensitivity = 0.01
-    local zoom = self.settings.zoom 
-    local cameraDist = 20 -- how to get to the actual camera distance?
+    local zoom = self.settings.zoom * 0.2
+    local cameraDist = 20 -- how to get to the real camera distance?
     local nameplateWidth = bounds.right - bounds.left -- the nameplate is left-anchored to the unit, I just need it's width for setting scale
     
-    local distance = self:DistanceToUnit(unitOwner) + cameraDist
+    local distance = self:DistanceToUnit(unitOwner)
+
+    -- deadzone
+    if distance < self.settings.deadZoneDist then
+        distance = self.settings.deadZoneDist
+    end
     
-    local scale = math.floor(zoom * 0.2 * nameplateWidth / distance / sensitivity) * sensitivity
+    local scale = math.floor(zoom * nameplateWidth / (distance + cameraDist) / sensitivity) * sensitivity
     
     -- lower the sensitivity, the bigger is the performance hit
     if math.abs(wnd:GetScale() - scale) < sensitivity then return end 
@@ -286,14 +292,26 @@ end
 
 function PerspectivePlates:GenerateModel()
 	self.model = {}
+
+    self.model.previousSettings = table.ShallowCopy(self.settings)
 	self.model.settings = table.ShallowCopy(self.settings)
+	
+	self.model.isDefaultNameplates = self.addonNameplates ~= nil
 end
 
 function PerspectivePlates:GenerateView()
-    self.wndMain:FindChild("SbZoom"):SetValue(self.model.settings.zoom or 0)
+    self.wndMain:FindChild("SbZoom"):SetValue(self.model.settings.zoom)
+	self.wndMain:FindChild("SbDeadZone"):SetValue(self.model.settings.deadZoneDist)
 
 	self.wndMain:FindChild("ChkHideHitpoints"):SetCheck(self.model.settings.hideHitpoints)
 	self.wndMain:FindChild("ChkPerspective"):SetCheck(self.model.settings.perspectiveEnabled)
+
+
+	if not self.model.isDefaultNameplates then
+		self.wndMain:FindChild("GrpMisc"):Enable(false)
+		self.wndMain:FindChild("GrpMisc"):SetOpacity(0.2)
+		self.wndMain:FindChild("LblMisc"):SetText("Only for default nameplates")
+	end
 end
 
 -- when the OK button is clicked
@@ -324,6 +342,8 @@ end
 
 -- when the Cancel button is clicked
 function PerspectivePlates:OnCancel()
+    self.settings = self.model.previousSettings
+
 	self.wndMain:Close() -- hide the window
 end
 
@@ -346,6 +366,11 @@ end
 
 function PerspectivePlates:ChkPerspective_OnButtonUnCheck( wndHandler, wndControl, eMouseButton )
 	self.model.settings.perspectiveEnabled = false
+end
+
+function PerspectivePlates:SbDeadZone_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
+	self.model.settings.deadZoneDist = fNewValue
+	self.settings.deadZoneDist = fNewValue
 end
 
 -----------------------------------------------------------------------------------------------

@@ -35,7 +35,7 @@ function PerspectivePlates:new(o)
 	self.settings.perspectiveEnabled = true
 	self.settings.hideHitpoints = true
     self.settings.zoom = 0.3 
-	self.settings.deadZoneDist = 0
+	self.settings.deadZoneDist = 10
 
     self.nameplateDefaultBounds = {} -- todo: read from nameplate addon data
     self.nameplateDefaultBounds.left = -150
@@ -188,10 +188,12 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
     self.hooks[self.addonNameplates].DrawNameplate(luaCaller, tNameplate)
 end
 
+-----------------------------------------------------------------------------------------------
 -- Event handlers for other nameplate addons
-function PerspectivePlates:OnRequestedResize(tNameplate)
+-----------------------------------------------------------------------------------------------
+function PerspectivePlates:OnRequestedResize(tNameplate, scale)
     if self.settings.perspectiveEnabled then
-        self:NameplatePerspectiveResize(tNameplate)
+        self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1)
     end
 end
 
@@ -207,7 +209,10 @@ function PerspectivePlates:OnRegisterDefaultBounds(left, top, right, bottom)
     self.nameplateDefaultBounds.bottom = bottom
 end
 
-function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
+-----------------------------------------------------------------------------------------------
+-- Main resizing logic
+-----------------------------------------------------------------------------------------------
+function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
 	-- xpcall(function() -- has a high performance cost, use only for debugging
     if tNameplate == nil then return end
 
@@ -228,7 +233,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
         distance = self.settings.deadZoneDist
     end
     
-    local scale = math.floor(zoom * nameplateWidth / (distance + cameraDist) / sensitivity) * sensitivity
+    local scale = math.floor(zoom * nameplateWidth / (1 * distance + cameraDist) / sensitivity) * sensitivity + (scaleOffset or 0)
     
     -- lower the sensitivity, the bigger is the performance hit
     if math.abs(wnd:GetScale() - scale) < sensitivity then return end 
@@ -236,13 +241,13 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate)
     wnd:SetScale(scale)
     
     local nameplateOffset = nameplateWidth * (1 - scale) * 0.5
-    local nameplateOffsetV = bounds.top * (1 - scale)
+    local nameplateOffsetV = -(bounds.top) * (1 - scale)
 
     -- Oddly enough, this is the biggest hit on performance
-    wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top - nameplateOffsetV, bounds.right + nameplateOffset, bounds.bottom - nameplateOffsetV)
+    wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffsetV, bounds.right + nameplateOffset, bounds.bottom + nameplateOffsetV)
 
     -- Debug
-    --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("scale: %f; distance: %f; offset: %f;", scale, distance, nameplateOffset)) end
+    --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("scale: %f; distance: %f; offset: %f; top: %f", scale, distance, nameplateOffset, bounds.top)) end
     --end, function(e) Print(tostring(e)) end) -- xpcall
 end
 

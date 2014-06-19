@@ -34,7 +34,7 @@ function PerspectivePlates:new(o)
     self.settings = {}
 	self.settings.perspectiveEnabled = true
 	self.settings.hideHitpoints = true
-    self.settings.zoom = 0.3 
+    self.settings.zoom = 0.0 
 	self.settings.deadZoneDist = 10
 
     self.nameplateDefaultBounds = {} -- todo: read from nameplate addon data
@@ -118,7 +118,7 @@ function PerspectivePlates:OnRestore(eType, t)
             assert(type(settings.perspectiveEnabled) == "boolean")
             assert(type(settings.hideHitpoints) == "boolean")
             
-			assert(settings.zoom > 0 and settings.zoom <= 2)
+			assert(settings.zoom >= 0 and settings.zoom <= 10)
 			
 			self.settings = settings
 		end,
@@ -222,15 +222,15 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     local bounds = self.nameplateDefaultBounds
     
     local sensitivity = 0.01
-    local zoom = self.settings.zoom * 0.2
-    local cameraDist = 20 -- how to get to the real camera distance?
     local nameplateWidth = bounds.right - bounds.left -- the nameplate is left-anchored to the unit, I just need it's width for setting scale
+    local cameraDist = 20 -- how to get to the real camera distance?
+    local zoom = self.settings.zoom * 0.01 + cameraDist / nameplateWidth
     
-    local distance = self:DistanceToUnit(unitOwner)
+    local distance = self:DistanceToUnit(unitOwner) - self.settings.deadZoneDist
 
     -- deadzone
-    if distance < self.settings.deadZoneDist then
-        distance = self.settings.deadZoneDist
+    if distance < 0 then
+        distance = 0
     end
     
     local scale = math.floor(zoom * nameplateWidth / (1 * distance + cameraDist) / sensitivity) * sensitivity + (scaleOffset or 0)

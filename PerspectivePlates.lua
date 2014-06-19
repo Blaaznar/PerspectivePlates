@@ -213,7 +213,6 @@ end
 -- Main resizing logic
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
-	-- xpcall(function() -- has a high performance cost, use only for debugging
     if tNameplate == nil then return end
 
     local unitOwner = tNameplate.unitOwner
@@ -229,11 +228,9 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     local distance = self:DistanceToUnit(unitOwner) - self.settings.deadZoneDist
 
     -- deadzone
-    if distance < 0 then
-        distance = 0
-    end
+    if distance < 0 then distance = 0 end
     
-    local scale = math.floor(zoom * nameplateWidth / (1 * distance + cameraDist) / sensitivity) * sensitivity + (scaleOffset or 0)
+    local scale = math.floor(zoom * nameplateWidth / (distance + cameraDist) / sensitivity) * sensitivity + (scaleOffset or 0)
     
     -- lower the sensitivity, the bigger is the performance hit
     if math.abs(wnd:GetScale() - scale) < sensitivity then return end 
@@ -247,8 +244,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffsetV, bounds.right + nameplateOffset, bounds.bottom + nameplateOffsetV)
 
     -- Debug
-    --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("scale: %f; distance: %f; offset: %f; top: %f", scale, distance, nameplateOffset, bounds.top)) end
-    --end, function(e) Print(tostring(e)) end) -- xpcall
+    --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("scale: %f; distance: %f; offset: %f", scale, distance, nameplateOffset)) end
 end
 
 function PerspectivePlates:NameplateRestoreDefaultSize(tNameplate)

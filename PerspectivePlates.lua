@@ -94,6 +94,11 @@ function PerspectivePlates:OnDocLoaded()
 		Apollo.RegisterSlashCommand("pp", "OnSlashConfig", self)
 		Apollo.RegisterSlashCommand("perspectiveplates", "OnSlashConfig", self)
 		Apollo.RegisterSlashCommand("PerspectivePlates", "OnSlashConfig", self)
+        
+        -- Camera FOV
+        self.fovY = Apollo.GetConsoleVariable("camera.FovY")
+        Apollo.RegisterTimerHandler("SniffFovTimer", "OnSniffFovTimer", self)
+        Apollo.CreateTimer("SniffFovTimer", 1, true)
 	end
 end
 
@@ -119,6 +124,7 @@ function PerspectivePlates:OnRestore(eType, t)
             assert(type(settings.hideHitpoints) == "boolean")
             
 			assert(settings.zoom >= 0 and settings.zoom <= 10)
+			assert(self.settings.deadZoneDist >= 5 and self.settings.deadZoneDist <= 30)
 			
 			self.settings = settings
 		end,
@@ -188,6 +194,10 @@ function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
     self.hooks[self.addonNameplates].DrawNameplate(luaCaller, tNameplate)
 end
 
+function PerspectivePlates:OnSniffFovTimer()
+    self.fovY = Apollo.GetConsoleVariable("camera.FovY")
+end
+
 -----------------------------------------------------------------------------------------------
 -- Event handlers for other nameplate addons
 -----------------------------------------------------------------------------------------------
@@ -230,7 +240,9 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     -- deadzone
     if distance < 0 then distance = 0 end
     
-    local scale = math.floor(zoom * nameplateWidth / (distance + cameraDist) / sensitivity) * sensitivity + (scaleOffset or 0)
+    local fovFactor = self.fovY / 60
+    
+    local scale = math.floor(zoom * nameplateWidth / (distance * fovFactor + cameraDist) / sensitivity) * sensitivity + (scaleOffset or 0)
     
     -- lower the sensitivity, the bigger is the performance hit
     if math.abs(wnd:GetScale() - scale) < sensitivity then return end 

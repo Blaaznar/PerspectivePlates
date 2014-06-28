@@ -39,7 +39,7 @@ function PerspectivePlates:new(o)
 
     self.nameplateDefaultBounds = {} -- todo: read from nameplate addon data
     self.nameplateDefaultBounds.left = -150
-    self.nameplateDefaultBounds.top = -66
+    self.nameplateDefaultBounds.top = -93
     self.nameplateDefaultBounds.right = 150
     self.nameplateDefaultBounds.bottom =  30
     
@@ -73,7 +73,8 @@ function PerspectivePlates:OnLoad()
     self.addonNameplates = Apollo.GetAddon("Nameplates")
     if self.addonNameplates ~= nil then
         self:RawHook(self.addonNameplates, "OnUnitCreated")
-        self:RawHook(self.addonNameplates, "DrawNameplate")
+        self:RawHook(self.addonNameplates, "OnFrame")
+        self:RawHook(self.addonNameplates, "UpdateNameplateVisibility")
     end
 end
 
@@ -138,7 +139,7 @@ function PerspectivePlates:OnConfigure()
 end
 
 -----------------------------------------------------------------------------------------------
--- PerspectivePlates Functions
+-- Overrides of Carbine Nameplates
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
 	if not unitNew:ShouldShowNamePlate() 
@@ -162,6 +163,37 @@ function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
     self:HideHealthNumber(idUnit)
 end
 
+function PerspectivePlates:OnFrame(luaCaller)
+    local fnResize = self.NameplatePerspectiveResize
+    local arUnit2Nameplate = luaCaller.arUnit2Nameplate
+    
+    -- This is responsible for default nameplates perspective
+	if self.settings.perspectiveEnabled then
+        for idx, tNameplate in pairs(arUnit2Nameplate) do
+            if tNameplate.bShow then
+                fnResize(self, tNameplate)
+            end
+        end
+	end
+        
+    -- Pass the call back to the original method
+    self.hooks[self.addonNameplates].OnFrame(luaCaller)
+end
+
+function PerspectivePlates:UpdateNameplateVisibility(luaCaller, tNameplate)
+    -- Prevents 'jumpy nameplates' effect
+    local bNewShow = luaCaller:HelperVerifyVisibilityOptions(tNameplate) and luaCaller:CheckDrawDistance(tNameplate)
+	if bNewShow then
+        self:NameplatePerspectiveResize(tNameplate)
+    end
+    -- Pass the call back to the original method
+    self.hooks[self.addonNameplates].UpdateNameplateVisibility(luaCaller, tNameplate)
+end
+
+-----------------------------------------------------------------------------------------------
+-- PerspectivePlates Functions
+-----------------------------------------------------------------------------------------------
+
 function PerspectivePlates:HideHealthNumber(idUnit)
 	xpcall(function()
 			local wnd = self.addonNameplates.arUnit2Nameplate[idUnit].wndNameplate
@@ -182,16 +214,6 @@ function PerspectivePlates:ShowHealthNumber(idUnit)
 		function(e)
             Print(tostring(e))
 		end)
-end
-
-function PerspectivePlates:DrawNameplate(luaCaller, tNameplate)
-	
-	if self.settings.perspectiveEnabled then
-		self:NameplatePerspectiveResize(tNameplate)
-	end
-        
-    -- Pass the call back to the original method
-    self.hooks[self.addonNameplates].DrawNameplate(luaCaller, tNameplate)
 end
 
 function PerspectivePlates:OnSniffFovTimer()

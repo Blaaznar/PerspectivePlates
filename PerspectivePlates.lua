@@ -346,9 +346,9 @@ function PerspectivePlates:GenerateView()
 
 
 	if not self.model.isDefaultNameplates then
-		self.wndMain:FindChild("GrpMisc"):Enable(false)
-		self.wndMain:FindChild("GrpMisc"):SetOpacity(0.2)
-		self.wndMain:FindChild("LblMisc"):SetText("Only for default nameplates")
+		self.wndMain:FindChild("GrpDefaultNameplates"):Enable(false)
+		self.wndMain:FindChild("GrpDefaultNameplates"):SetOpacity(0.2)
+		self.wndMain:FindChild("LblDefaultNameplates"):SetText("Only for default nameplates")
 	end
 end
 
@@ -409,6 +409,14 @@ end
 function PerspectivePlates:SbDeadZone_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
 	self.model.settings.deadZoneDist = fNewValue
 	self.settings.deadZoneDist = fNewValue
+end
+
+function PerspectivePlates:ChkFadeNameplates_OnButtonCheck( wndHandler, wndControl, eMouseButton )
+	self.model.settings.fadingEnabled = true
+end
+
+function PerspectivePlates:ChkFadeNameplates_OnButtonUnCheck( wndHandler, wndControl, eMouseButton )
+	self.model.settings.fadingEnabled = false
 end
 
 -----------------------------------------------------------------------------------------------

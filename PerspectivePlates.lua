@@ -181,13 +181,17 @@ function PerspectivePlates:OnFrame(luaCaller)
 end
 
 function PerspectivePlates:UpdateNameplateVisibility(luaCaller, tNameplate)
-    -- Prevents 'jumpy nameplates' effect
-    if luaCaller.unitPlayer ~= nil then
+	if unitOwner ~= nil 
+        and unitOwner:GetPosition() ~= nil 
+        and unitPlayer ~= nil 
+        and unitPlayer:GetPosition() ~= nil 
+    then
+        -- Prevents 'jumpy nameplates' effect
         local bNewShow = luaCaller:HelperVerifyVisibilityOptions(tNameplate) and luaCaller:CheckDrawDistance(tNameplate)
         if bNewShow then
             self:NameplatePerspectiveResize(tNameplate)
         end
-    end
+	end
     
     -- Pass the call back to the original method
     self.hooks[self.addonNameplates].UpdateNameplateVisibility(luaCaller, tNameplate)

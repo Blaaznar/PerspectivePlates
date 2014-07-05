@@ -96,10 +96,12 @@ function PerspectivePlates:OnDocLoaded()
 		Apollo.RegisterSlashCommand("perspectiveplates", "OnSlashConfig", self)
 		Apollo.RegisterSlashCommand("PerspectivePlates", "OnSlashConfig", self)
         
-        -- Camera FOV
+        -- Console vars
         self.fovY = Apollo.GetConsoleVariable("camera.FovY")
-        Apollo.RegisterTimerHandler("SniffFovTimer", "OnSniffFovTimer", self)
-        Apollo.CreateTimer("SniffFovTimer", 1, true)
+        self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax")
+        
+        Apollo.RegisterTimerHandler("SniffConsoleVarsTimer", "OnSniffConsoleVarsTimer", self)
+        Apollo.CreateTimer("SniffConsoleVarsTimer", 1, true)
 	end
 end
 
@@ -223,8 +225,9 @@ function PerspectivePlates:ShowHealthNumber(idUnit)
 		end)
 end
 
-function PerspectivePlates:OnSniffFovTimer()
+function PerspectivePlates:OnSniffConsoleVarsTimer()
     self.fovY = Apollo.GetConsoleVariable("camera.FovY")
+    self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax")
 end
 
 -----------------------------------------------------------------------------------------------
@@ -259,9 +262,9 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
 
     local bounds = self.nameplateDefaultBounds
     
-    local sensitivity = 0.01
+    local sensitivity = 0.005
     local nameplateWidth = bounds.right - bounds.left -- the nameplate is left-anchored to the unit, I just need it's width for setting scale
-    local cameraDist = 20 -- how to get to the real camera distance?
+    local cameraDist = self.cameraDistanceMax * 1.5 -- how to get to the real camera distance?
     local zoom = self.settings.zoom * 0.01 + cameraDist / nameplateWidth
     
     local distance = self:DistanceToUnit(unitOwner) - self.settings.deadZoneDist
@@ -271,7 +274,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     
     local fovFactor = self.fovY / 60
     
-    local scale = math.floor(zoom * nameplateWidth / (distance * fovFactor + cameraDist) / sensitivity) * sensitivity + (scaleOffset or 0)
+    local scale = math.floor(zoom * nameplateWidth / (distance * fovFactor + cameraDist * fovFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
     
     -- lower the sensitivity, the bigger is the performance hit
     if math.abs(wnd:GetScale() - scale) < sensitivity then return end 

@@ -261,6 +261,9 @@ end
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     if tNameplate == nil then return end
+    
+    local settings = self.settings
+    if not settings.perspectiveEnabled and not settings.fadingEnabled then return end    
 
     local unitOwner = tNameplate.unitOwner
     local wnd = tNameplate.wndNameplate
@@ -270,9 +273,9 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     local sensitivity = 0.005
     local nameplateWidth = bounds.right - bounds.left -- the nameplate is left-anchored to the unit, I just need it's width for setting scale
     local cameraDist = self.cameraDistanceMax * 1.5 -- how to get to the real camera distance?
-    local zoom = self.settings.zoom * 0.01 + cameraDist / nameplateWidth
+    local zoom = settings.zoom * 0.01 + cameraDist / nameplateWidth
     
-    local distance = self:DistanceToUnit(unitOwner) - self.settings.deadZoneDist
+    local distance = self:DistanceToUnit(unitOwner) - settings.deadZoneDist
 
     -- deadzone
     if distance < 0 then distance = 0 end
@@ -282,7 +285,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     local scale = math.floor(zoom * nameplateWidth / (distance * fovFactor + cameraDist * fovFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
     
     -- lower the sensitivity, the bigger is the performance hit
-    if self.settings.perspectiveEnabled and math.abs(wnd:GetScale() - scale) >= sensitivity then 
+    if settings.perspectiveEnabled and math.abs(wnd:GetScale() - scale) >= sensitivity then 
         wnd:SetScale(scale)
         local nameplateOffset = nameplateWidth * (1 - scale) * 0.5
         local nameplateOffsetV = -(bounds.top) * (1 - scale)
@@ -291,7 +294,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
         wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffsetV, bounds.right + nameplateOffset, bounds.bottom + nameplateOffsetV)
     end 
     
-    if self.settings.fadingEnabled and math.abs(wnd:GetOpacity() - scale) >= sensitivity then 
+    if settings.fadingEnabled and math.abs(wnd:GetOpacity() - scale) >= sensitivity then 
         wnd:SetOpacity(scale)
     end 
 

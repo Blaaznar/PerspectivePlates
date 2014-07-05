@@ -33,6 +33,7 @@ function PerspectivePlates:new(o)
 	
     self.settings = {}
 	self.settings.perspectiveEnabled = true
+	self.settings.fadingEnabled = false
 	self.settings.hideHitpoints = true
     self.settings.zoom = 0.0 
 	self.settings.deadZoneDist = 10
@@ -144,8 +145,10 @@ end
 -- Overrides of Carbine Nameplates
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
-	if not unitNew:ShouldShowNamePlate() 
-		or unitNew:GetType() == "Collectible" 
+	if unitNew == nil
+		or not unitNew:IsValid()
+		or not unitNew:ShouldShowNamePlate()
+		or unitNew:GetType() == "Collectible"
 		or unitNew:GetType() == "PinataLoot" then
 		-- Never have nameplates
 		return
@@ -158,11 +161,13 @@ function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
 	
 	self.hooks[self.addonNameplates].OnUnitCreated(luaCaller, unitNew)
 
-	if not self.settings.hideHitpoints then 
-		return 
-	end	
-		
-    self:HideHealthNumber(idUnit)
+	if self.settings.hideHitpoints then 
+        self:HideHealthNumber(idUnit)
+    end
+
+    -- prepare new nameplates, preventing initial jumping
+    local tNameplate = luaCaller.arUnit2Nameplate[idUnit]
+    self:NameplatePerspectiveResize(tNameplate, 0)
 end
 
 function PerspectivePlates:OnFrame(luaCaller)
@@ -170,7 +175,7 @@ function PerspectivePlates:OnFrame(luaCaller)
     local arUnit2Nameplate = luaCaller.arUnit2Nameplate
     
     -- This is responsible for default nameplates perspective
-	if self.settings.perspectiveEnabled then
+	if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
         for idx, tNameplate in pairs(arUnit2Nameplate) do
             if tNameplate.bShow then
                 fnResize(self, tNameplate)
@@ -188,7 +193,7 @@ function PerspectivePlates:UpdateNameplateVisibility(luaCaller, tNameplate)
         and unitPlayer ~= nil 
         and unitPlayer:GetPosition() ~= nil 
     then
-        -- Prevents 'jumpy nameplates' effect
+        -- Prevents 'jumpy nameplates'
         local bNewShow = luaCaller:HelperVerifyVisibilityOptions(tNameplate) and luaCaller:CheckDrawDistance(tNameplate)
         if bNewShow then
             self:NameplatePerspectiveResize(tNameplate)
@@ -234,7 +239,7 @@ end
 -- Event handlers for other nameplate addons
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:OnRequestedResize(tNameplate, scale)
-    if self.settings.perspectiveEnabled then
+    if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
         self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1)
     end
 end
@@ -277,27 +282,36 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     local scale = math.floor(zoom * nameplateWidth / (distance * fovFactor + cameraDist * fovFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
     
     -- lower the sensitivity, the bigger is the performance hit
-    if math.abs(wnd:GetScale() - scale) < sensitivity then return end 
-    
-    wnd:SetScale(scale)
-    
-    local nameplateOffset = nameplateWidth * (1 - scale) * 0.5
-    local nameplateOffsetV = -(bounds.top) * (1 - scale)
+    if self.settings.perspectiveEnabled and math.abs(wnd:GetScale() - scale) >= sensitivity then 
+        wnd:SetScale(scale)
+        local nameplateOffset = nameplateWidth * (1 - scale) * 0.5
+        local nameplateOffsetV = -(bounds.top) * (1 - scale)
 
-    -- Oddly enough, this is the biggest hit on performance
-    wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffsetV, bounds.right + nameplateOffset, bounds.bottom + nameplateOffsetV)
+        -- Oddly enough, this is the biggest hit on performance
+        wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffsetV, bounds.right + nameplateOffset, bounds.bottom + nameplateOffsetV)
+    end 
+    
+    if self.settings.fadingEnabled and math.abs(wnd:GetOpacity() - scale) >= sensitivity then 
+        wnd:SetOpacity(scale)
+    end 
 
     -- Debug
     --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("scale: %f; distance: %f; offset: %f", scale, distance, nameplateOffset)) end
 end
 
-function PerspectivePlates:NameplateRestoreDefaultSize(tNameplate)
+function PerspectivePlates:NameplateRestoreDefaults(tNameplate, settings)
 	xpcall(function()
 			local wnd = tNameplate.wndNameplate
-			wnd:SetScale(1)
-            
-            local bounds = self.nameplateDefaultBounds
-            wnd:SetAnchorOffsets(bounds.left, bounds.top, bounds.right, bounds.bottom)
+			
+			if not settings.perspectiveEnabled then
+				wnd:SetScale(1)
+	            local bounds = self.nameplateDefaultBounds
+	            wnd:SetAnchorOffsets(bounds.left, bounds.top, bounds.right, bounds.bottom)
+			end
+			
+			if not settings.fadingEnabled then
+				wnd:SetOpacity(1)
+			end
 		end,
 		function(e)
 			Print(tostring(e))
@@ -370,8 +384,12 @@ function PerspectivePlates:OnOK()
                         self:ShowHealthNumber(idx)
                     end
                     
-                    if not self.model.settings.perspectiveEnabled then
-                        self:NameplateRestoreDefaultSize(tNameplate)
+                    if self.model.settings.perspectiveEnabled or self.model.settings.fadingEnabled then
+                        self:NameplatePerspectiveResize(tNameplate, 0)
+                    end
+                    
+                    if not self.model.settings.perspectiveEnabled or not self.model.settings.fadingEnabled then
+                        self:NameplateRestoreDefaults(tNameplate, self.model.settings)
                     end
                 end
             end

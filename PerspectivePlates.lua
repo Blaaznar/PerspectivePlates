@@ -367,7 +367,7 @@ function PerspectivePlates:GenerateView()
 
 	self.wndMain:FindChild("ChkHideHitpoints"):SetCheck(self.model.settings.hideHitpoints)
 	self.wndMain:FindChild("ChkPerspective"):SetCheck(self.model.settings.perspectiveEnabled)
-
+    self.wndMain:FindChild("ChkFadeNameplates"):SetCheck(self.model.settings.fadingEnabled)
 
 	if not self.model.isDefaultNameplates then
 		self.wndMain:FindChild("GrpDefaultNameplates"):Enable(false)

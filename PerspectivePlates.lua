@@ -268,25 +268,25 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     local unitOwner = tNameplate.unitOwner
     local wnd = tNameplate.wndNameplate
 
-    local bounds = self.nameplateDefaultBounds
-    
     local sensitivity = 0.005
-    local nameplateWidth = bounds.right - bounds.left -- the nameplate is left-anchored to the unit, I just need it's width for setting scale
-    local cameraDist = self.cameraDistanceMax * 1.5 -- how to get to the real camera distance?
-    local zoom = settings.zoom * 0.01 + cameraDist / nameplateWidth
+    
+    local fovFactor = 60 / self.fovY
+    local focalLength = fovFactor * (-5 + self.cameraDistanceMax * 1.5) -- needs more tweaking
+    local zoom = 1 + settings.zoom * 0.1
     
     local distance = self:DistanceToUnit(unitOwner) - settings.deadZoneDist
-
+    
     -- deadzone
     if distance < 0 then distance = 0 end
     
-    local fovFactor = self.fovY / 60
-    
-    local scale = math.floor(zoom * nameplateWidth / (distance * fovFactor + cameraDist * fovFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
-    
+    local scale = math.floor( zoom * ((focalLength + settings.deadZoneDist)/ (distance + focalLength + settings.deadZoneDist)) / sensitivity) * sensitivity + (scaleOffset or 0)
+
     -- lower the sensitivity, the bigger is the performance hit
     if settings.perspectiveEnabled and math.abs(wnd:GetScale() - scale) >= sensitivity then 
         wnd:SetScale(scale)
+        
+        local bounds = self.nameplateDefaultBounds
+        local nameplateWidth = bounds.right - bounds.left -- the nameplate is left-anchored to the unit, I just need it's width for setting scale
         local nameplateOffset = nameplateWidth * (1 - scale) * 0.5
         local nameplateOffsetV = -(bounds.top) * (1 - scale)
 
@@ -299,7 +299,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     end 
 
     -- Debug
-    --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("scale: %f; distance: %f; offset: %f", scale, distance, nameplateOffset)) end
+    --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("scale: %f; distance: %f", scale, distance)) end
 end
 
 function PerspectivePlates:NameplateRestoreDefaults(tNameplate, settings)

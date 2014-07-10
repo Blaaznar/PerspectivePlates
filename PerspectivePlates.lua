@@ -167,7 +167,7 @@ function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
 
     -- prepare new nameplates, preventing initial jumping
     local tNameplate = luaCaller.arUnit2Nameplate[idUnit]
-    self:NameplatePerspectiveResize(tNameplate, 0)
+    self:NameplatePerspectiveResize(tNameplate, nil, self.nameplateDefaultBounds)
 end
 
 function PerspectivePlates:OnFrame(luaCaller)
@@ -176,9 +176,11 @@ function PerspectivePlates:OnFrame(luaCaller)
     
     -- This is responsible for default nameplates perspective
 	if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
+        local defaultBounds = self.nameplateDefaultBounds
+    
         for idx, tNameplate in pairs(arUnit2Nameplate) do
             if tNameplate.bShow then
-                fnResize(self, tNameplate)
+                fnResize(self, tNameplate, nil, defaultBounds)
             end
         end
 	end
@@ -196,7 +198,7 @@ function PerspectivePlates:UpdateNameplateVisibility(luaCaller, tNameplate)
         -- Prevents 'jumpy nameplates'
         local bNewShow = luaCaller:HelperVerifyVisibilityOptions(tNameplate) and luaCaller:CheckDrawDistance(tNameplate)
         if bNewShow then
-            self:NameplatePerspectiveResize(tNameplate)
+            self:NameplatePerspectiveResize(tNameplate, nil, self.nameplateDefaultBounds)
         end
 	end
     
@@ -238,9 +240,9 @@ end
 -----------------------------------------------------------------------------------------------
 -- Event handlers for other nameplate addons
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:OnRequestedResize(tNameplate, scale)
+function PerspectivePlates:OnRequestedResize(tNameplate, scale, defaultBounds)
     if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
-        self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1)
+        self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1, defaultBounds or self.nameplateDefaultBounds)
     end
 end
 
@@ -259,7 +261,7 @@ end
 -----------------------------------------------------------------------------------------------
 -- Main resizing logic
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
+function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, defaultBounds)
     if tNameplate == nil then return end
     
     local settings = self.settings
@@ -285,7 +287,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     if settings.perspectiveEnabled and math.abs(wnd:GetScale() - scale) >= sensitivity then 
         wnd:SetScale(scale)
         
-        local bounds = self.nameplateDefaultBounds
+        local bounds = defaultBounds
         local nameplateWidth = bounds.right - bounds.left -- the nameplate is left-anchored to the unit, I just need it's width for setting scale
         local nameplateOffset = nameplateWidth * (1 - scale) * 0.5
         local nameplateOffsetV = -(bounds.top) * (1 - scale)

@@ -390,7 +390,7 @@ function PerspectivePlates:OnOK()
                     end
                     
                     if self.model.settings.perspectiveEnabled or self.model.settings.fadingEnabled then
-                        self:NameplatePerspectiveResize(tNameplate, 0)
+                        self:NameplatePerspectiveResize(tNameplate, nil, self.nameplateDefaultBounds)
                     end
                     
                     if not self.model.settings.perspectiveEnabled or not self.model.settings.fadingEnabled then

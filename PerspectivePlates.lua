@@ -98,7 +98,7 @@ function PerspectivePlates:OnDocLoaded()
 		Apollo.RegisterSlashCommand("PerspectivePlates", "OnSlashConfig", self)
         
         -- Console vars
-        self.fovY = Apollo.GetConsoleVariable("camera.FovY")
+        self.fovY = Apollo.GetConsoleVariable("camera.FovY") or 60
         self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax")
         
         Apollo.RegisterTimerHandler("SniffConsoleVarsTimer", "OnSniffConsoleVarsTimer", self)
@@ -233,7 +233,7 @@ function PerspectivePlates:ShowHealthNumber(idUnit)
 end
 
 function PerspectivePlates:OnSniffConsoleVarsTimer()
-    self.fovY = Apollo.GetConsoleVariable("camera.FovY")
+    self.fovY = Apollo.GetConsoleVariable("camera.FovY") or 60
     self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax")
 end
 

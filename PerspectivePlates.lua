@@ -98,7 +98,7 @@ function PerspectivePlates:OnDocLoaded()
 		Apollo.RegisterSlashCommand("PerspectivePlates", "OnSlashConfig", self)
         
         -- Console vars
-        self.fovY = Apollo.GetConsoleVariable("camera.FovY") or 60
+        self.fovY = Apollo.GetConsoleVariable("camera.FovY")
         self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax")
         
         Apollo.RegisterTimerHandler("SniffConsoleVarsTimer", "OnSniffConsoleVarsTimer", self)
@@ -190,6 +190,9 @@ function PerspectivePlates:OnFrame(luaCaller)
 end
 
 function PerspectivePlates:UpdateNameplateVisibility(luaCaller, tNameplate)
+	local unitOwner = tNameplate.unitOwner
+    local unitPlayer = luaCaller.unitPlayer
+    
 	if unitOwner ~= nil 
         and unitOwner:GetPosition() ~= nil 
         and unitPlayer ~= nil 
@@ -233,7 +236,7 @@ function PerspectivePlates:ShowHealthNumber(idUnit)
 end
 
 function PerspectivePlates:OnSniffConsoleVarsTimer()
-    self.fovY = Apollo.GetConsoleVariable("camera.FovY") or 60
+    self.fovY = Apollo.GetConsoleVariable("camera.FovY")
     self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax")
 end
 
@@ -272,7 +275,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, d
 
     local sensitivity = 0.005
     
-    local fovFactor = 60 / self.fovY
+    local fovFactor = 60 / (self.fovY or 60)
     local focalLength = fovFactor * (-5 + self.cameraDistanceMax * 1.5) -- needs more tweaking
     local zoom = 1 + settings.zoom * 0.1
     

@@ -44,6 +44,9 @@ function PerspectivePlates:new(o)
     self.nameplateDefaultBounds.right = 150
     self.nameplateDefaultBounds.bottom =  30
     
+    self.fovY = 60
+    self.cameraDistanceMax = 32
+    
     return o
 end
 
@@ -75,7 +78,7 @@ function PerspectivePlates:OnLoad()
     if self.addonNameplates ~= nil then
         self:RawHook(self.addonNameplates, "OnUnitCreated")
         self:RawHook(self.addonNameplates, "OnFrame")
-        self:RawHook(self.addonNameplates, "UpdateNameplateVisibility")
+        --self:RawHook(self.addonNameplates, "UpdateNameplateVisibility")
     end
 end
 
@@ -98,8 +101,8 @@ function PerspectivePlates:OnDocLoaded()
 		Apollo.RegisterSlashCommand("PerspectivePlates", "OnSlashConfig", self)
         
         -- Console vars
-        self.fovY = Apollo.GetConsoleVariable("camera.FovY")
-        self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax")
+        self.fovY = Apollo.GetConsoleVariable("camera.FovY") or 60
+        self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax") or 32
         
         Apollo.RegisterTimerHandler("SniffConsoleVarsTimer", "OnSniffConsoleVarsTimer", self)
         Apollo.CreateTimer("SniffConsoleVarsTimer", 1, true)
@@ -236,8 +239,8 @@ function PerspectivePlates:ShowHealthNumber(idUnit)
 end
 
 function PerspectivePlates:OnSniffConsoleVarsTimer()
-    self.fovY = Apollo.GetConsoleVariable("camera.FovY")
-    self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax")
+        self.fovY = Apollo.GetConsoleVariable("camera.FovY") or 60
+        self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax") or 32
 end
 
 -----------------------------------------------------------------------------------------------
@@ -275,7 +278,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, d
 
     local sensitivity = 0.005
     
-    local fovFactor = 60 / (self.fovY or 60)
+    local fovFactor = 60 / self.fovY
     local focalLength = fovFactor * (-5 + self.cameraDistanceMax * 1.5) -- needs more tweaking
     local zoom = 1 + settings.zoom * 0.1
     

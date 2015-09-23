@@ -303,7 +303,7 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, d
     end 
     
     if settings.fadingEnabled and math.abs(wnd:GetOpacity() - scale) >= sensitivity then 
-        wnd:SetOpacity(scale)
+        --wnd:SetOpacity(scale) -- This is not working correctly anymore...
     end 
 
     -- Debug

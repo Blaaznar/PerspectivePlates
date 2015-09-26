@@ -277,17 +277,19 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, d
     local wnd = tNameplate.wndNameplate
 
     local sensitivity = 0.005
-    
     local fovFactor = 60 / self.fovY
-    local focalLength = fovFactor * (-5 + self.cameraDistanceMax * 1.5) -- needs more tweaking
     local zoom = 1 + settings.zoom * 0.1
     
-    local distance = self:DistanceToUnit(unitOwner) - settings.deadZoneDist
+    local distance = self:DistanceToUnit(unitOwner)
     
     -- deadzone
-    if distance < 0 then distance = 0 end
+    local deadZone = settings.deadZoneDist
+    if distance < deadZone then distance = deadZone end
+
+    local focalFactor = fovFactor * (-5 + self.cameraDistanceMax * 1.5) + deadZone -- needs more tweaking    
+    local scaleFactor = zoom * (focalFactor + deadZone)
     
-    local scale = math.floor( zoom * ((focalLength + settings.deadZoneDist)/ (distance + focalLength + settings.deadZoneDist)) / sensitivity) * sensitivity + (scaleOffset or 0)
+    local scale = math.floor(scaleFactor / (distance + focalFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
 
     -- lower the sensitivity, the bigger is the performance hit
     if settings.perspectiveEnabled and math.abs(wnd:GetScale() - scale) >= sensitivity then 
@@ -302,9 +304,9 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, d
         wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffsetV, bounds.right + nameplateOffset, bounds.bottom + nameplateOffsetV)
     end 
     
-    if settings.fadingEnabled and math.abs(wnd:GetOpacity() - scale) >= sensitivity then 
-        --wnd:SetOpacity(scale) -- This is not working correctly anymore...
-    end 
+    -- if settings.fadingEnabled and math.abs(wnd:GetOpacity() - scale) >= sensitivity then 
+    --     wnd:SetOpacity(scale) -- This is not working correctly anymore...
+    -- end 
 
     -- Debug
     --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("scale: %f; distance: %f", scale, distance)) end
@@ -382,6 +384,9 @@ function PerspectivePlates:GenerateView()
 		self.wndMain:FindChild("GrpDefaultNameplates"):SetOpacity(0.2)
 		self.wndMain:FindChild("LblDefaultNameplates"):SetText("Only for default nameplates")
 	end
+    
+    -- disabled for now
+    self.wndMain:FindChild("ChkFadeNameplates"):Enable(false)
 end
 
 -- when the OK button is clicked

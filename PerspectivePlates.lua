@@ -447,6 +447,14 @@ end
 -- Optional parameters
 --   scale:  custom nameplate scale
 --   bounds: custom dimensions of your nameplate
+--
+-- Performance tip
+--   If looping this call within a function, you can get better performance by having the call
+--   stored in a local variable:
+--   local fnOnRequestedResize = Apollo.GetAddon("PerspectivePlates").OnRequestedResize
+--   for idx, tNameplate in pairs(arUnit2Nameplate) do
+--      fnOnRequestedResize(self, tNameplate, nil, nil)
+--   end
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:OnRequestedResize(tNameplate, scale, nameplateBounds)
     if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
@@ -469,6 +477,7 @@ function PerspectivePlates:OnRegisterDefaultBounds(left, top, right, bottom)
     self.nameplateDefaultBounds.bottom = bottom
 end
 
+-----------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------
 -- PerspectivePlates Instance
 -----------------------------------------------------------------------------------------------

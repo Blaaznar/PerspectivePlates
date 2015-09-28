@@ -456,9 +456,9 @@ end
 --      fnOnRequestedResize(self, tNameplate, nil, nil)
 --   end
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:OnRequestedResize(tNameplate, scale, nameplateBounds)
+function PerspectivePlates:OnRequestedResize(tNameplate, scale, bounds)
     if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
-        self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1, nameplateBounds or self.nameplateDefaultBounds)
+        self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1, bounds or self.nameplateDefaultBounds)
     end
 end
 

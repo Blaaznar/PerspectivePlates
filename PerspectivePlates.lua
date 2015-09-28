@@ -244,27 +244,6 @@ function PerspectivePlates:OnSniffConsoleVarsTimer()
 end
 
 -----------------------------------------------------------------------------------------------
--- Event handlers for other nameplate addons
------------------------------------------------------------------------------------------------
-function PerspectivePlates:OnRequestedResize(tNameplate, scale, defaultBounds)
-    if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
-        self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1, defaultBounds or self.nameplateDefaultBounds)
-    end
-end
-
-function PerspectivePlates:OnRegisterDefaultBounds(left, top, right, bottom)
-    assert(type(left) == "number")
-    assert(type(top) == "number")
-    assert(type(right) == "number")
-    assert(type(bottom) == "number")
-    
-    self.nameplateDefaultBounds.left = left
-    self.nameplateDefaultBounds.top = top
-    self.nameplateDefaultBounds.right = right
-    self.nameplateDefaultBounds.bottom = bottom
-end
-
------------------------------------------------------------------------------------------------
 -- Main resizing logic
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, bounds)
@@ -454,6 +433,40 @@ end
 
 function PerspectivePlates:ChkFadeNameplates_OnButtonUnCheck( wndHandler, wndControl, eMouseButton )
 	self.model.settings.fadingEnabled = false
+end
+
+-----------------------------------------------------------------------------------------------
+-- Interface for other nameplate addons
+-----------------------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------------------
+-- Applies perspective to a nameplate. Call this before your tNameplate.wndNameplate:Show()
+--
+-- Required parameter
+--   tNameplate: requires tNameplate.unitOwner and tNameplate.wndNameplate to be populated
+-- Optional parameters
+--   scale:  custom nameplate scale
+--   bounds: custom dimensions of your nameplate
+-----------------------------------------------------------------------------------------------
+function PerspectivePlates:OnRequestedResize(tNameplate, scale, nameplateBounds)
+    if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
+        self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1, nameplateBounds or self.nameplateDefaultBounds)
+    end
+end
+
+-----------------------------------------------------------------------------------------------
+-- Sets default nameplate dimensions (necessary if different from size of default nameplates)
+-----------------------------------------------------------------------------------------------
+function PerspectivePlates:OnRegisterDefaultBounds(left, top, right, bottom)
+    assert(type(left) == "number")
+    assert(type(top) == "number")
+    assert(type(right) == "number")
+    assert(type(bottom) == "number")
+    
+    self.nameplateDefaultBounds.left = left
+    self.nameplateDefaultBounds.top = top
+    self.nameplateDefaultBounds.right = right
+    self.nameplateDefaultBounds.bottom = bottom
 end
 
 -----------------------------------------------------------------------------------------------

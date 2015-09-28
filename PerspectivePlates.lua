@@ -267,7 +267,7 @@ end
 -----------------------------------------------------------------------------------------------
 -- Main resizing logic
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, defaultBounds)
+function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, bounds)
     if tNameplate == nil then return end
     
     local settings = self.settings
@@ -278,38 +278,34 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, d
 
     local sensitivity = 0.005
     local fovFactor = 60 / self.fovY
+    local cameraDistanceFactor = (-5 + self.cameraDistanceMax * 1.5)
     local zoom = 1 + settings.zoom * 0.1
-    
-    local distance = self:DistanceToUnit(unitOwner)
-    
-    -- deadzone
     local deadZone = settings.deadZoneDist
-    if distance < deadZone then distance = deadZone end
-
-    local focalFactor = fovFactor * (-5 + self.cameraDistanceMax * 1.5) + deadZone -- needs more tweaking    
-    local scaleFactor = zoom * (focalFactor + deadZone)
     
-    local scale = math.floor(scaleFactor / (distance + focalFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
+    local distance = self:DistanceToUnit(unitOwner) - deadZone
+    if distance < 0 then distance = 0 end
+
+    local focalFactor = fovFactor * cameraDistanceFactor + deadZone
+    
+    local scale = math.floor(zoom * (1 + focalFactor) / (1 + distance + focalFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
 
     -- lower the sensitivity, the bigger is the performance hit
     if settings.perspectiveEnabled and math.abs(wnd:GetScale() - scale) >= sensitivity then 
         wnd:SetScale(scale)
         
-        local bounds = defaultBounds
-        local nameplateWidth = bounds.right - bounds.left -- the nameplate is left-anchored to the unit, I just need it's width for setting scale
-        local nameplateOffset = nameplateWidth * (1 - scale) * 0.5
+        local nameplateOffsetH = (bounds.right - bounds.left) * (1 - scale) / 2
         local nameplateOffsetV = -(bounds.top) * (1 - scale)
 
         -- Oddly enough, this is the biggest hit on performance
-        wnd:SetAnchorOffsets(bounds.left + nameplateOffset, bounds.top + nameplateOffsetV, bounds.right + nameplateOffset, bounds.bottom + nameplateOffsetV)
+        wnd:SetAnchorOffsets(bounds.left + nameplateOffsetH, bounds.top + nameplateOffsetV, bounds.right + nameplateOffsetH, bounds.bottom + nameplateOffsetV)
     end 
     
     -- if settings.fadingEnabled and math.abs(wnd:GetOpacity() - scale) >= sensitivity then 
     --     wnd:SetOpacity(scale) -- This is not working correctly anymore...
     -- end 
-
+    
     -- Debug
-    --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("scale: %f; distance: %f", scale, distance)) end
+    --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("focalFactor: %f; scale: %f; distance: %f", focalFactor, scale, distance)) end
 end
 
 function PerspectivePlates:NameplateRestoreDefaults(tNameplate, settings)

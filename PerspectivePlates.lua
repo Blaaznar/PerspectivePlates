@@ -168,7 +168,7 @@ function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
         self:HideHealthNumber(idUnit)
     end
 
-    -- prepare new nameplates, preventing initial jumping
+    -- Prepare new nameplates, preventing initial jumping
     local tNameplate = luaCaller.arUnit2Nameplate[idUnit]
     self:NameplatePerspectiveResize(tNameplate, nil, self.nameplateDefaultBounds)
 end

@@ -54,7 +54,8 @@ function PerspectivePlates:Init()
 	local bHasConfigureFunction = true
 	local strConfigureButtonText = "PerspectivePlates"
 	local tDependencies = {
-		-- "UnitOrPackageName",
+        "Blaz:Lib:LuaUtils-0.1",
+        "Gemini:Hook-1.0"
 	}
     Apollo.RegisterAddon(self, bHasConfigureFunction, strConfigureButtonText, tDependencies)
 end

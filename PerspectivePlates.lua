@@ -65,7 +65,6 @@ end
 -- PerspectivePlates OnLoad
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:OnLoad()
-    -- load our form file
 	self.xmlDoc = XmlDoc.CreateFromFile("PerspectivePlates.xml")
 	self.xmlDoc:RegisterCallback("OnDocLoaded", self)
 	

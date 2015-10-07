@@ -1,6 +1,16 @@
 local LuaUtils = {}
 
-function table.ShallowCopy(t)
+function LuaUtils:new(o)
+    o = o or {}
+    setmetatable(o, self)
+    self.__index = self 
+
+    -- initialize variables here
+	
+    return o
+end
+
+function LuaUtils:ShallowCopy(t)
 	local t2 = {}
 	
 	for k,v in pairs(t) do
@@ -9,7 +19,7 @@ function table.ShallowCopy(t)
 	return t2
 end
 
-function table.ShallowMerge(table1, intoTable2)
+function LuaUtils:ShallowMerge(table1, intoTable2)
 	for k,v in pairs(table1) do
     	intoTable2[k] = v
 	end
@@ -261,4 +271,4 @@ function LuaUtils:DataDumper(value, varname, fastmode, ident)
   end
 end
 
-Apollo.RegisterPackage(LuaUtils, "Blaz:Lib:LuaUtils-0.1", 1, {})
+Apollo.RegisterPackage(LuaUtils, "Blaz:Lib:LuaUtils-0.2", 1, {})

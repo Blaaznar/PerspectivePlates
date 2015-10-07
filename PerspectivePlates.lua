@@ -12,7 +12,7 @@ require "Window"
 -----------------------------------------------------------------------------------------------
 -- Packages
 -----------------------------------------------------------------------------------------------
-local LuaUtils = Apollo.GetPackage("Blaz:Lib:LuaUtils-0.1").tPackage
+local LuaUtils = Apollo.GetPackage("Blaz:Lib:LuaUtils-0.2").tPackage:new()
  
 -----------------------------------------------------------------------------------------------
 -- PerspectivePlates Module Definition
@@ -54,7 +54,7 @@ function PerspectivePlates:Init()
 	local bHasConfigureFunction = true
 	local strConfigureButtonText = "PerspectivePlates"
 	local tDependencies = {
-        "Blaz:Lib:LuaUtils-0.1",
+        "Blaz:Lib:LuaUtils-0.2",
         "Gemini:Hook-1.0"
 	}
     Apollo.RegisterAddon(self, bHasConfigureFunction, strConfigureButtonText, tDependencies)
@@ -86,7 +86,6 @@ end
 -- PerspectivePlates OnDocLoaded
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:OnDocLoaded()
-
 	if self.xmlDoc ~= nil and self.xmlDoc:IsLoaded() then
 	    self.wndMain = Apollo.LoadForm(self.xmlDoc, "PerspectivePlatesForm", nil, self)
 		if self.wndMain == nil then
@@ -105,7 +104,7 @@ function PerspectivePlates:OnDocLoaded()
         self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax") or 32
         
         Apollo.RegisterTimerHandler("SniffConsoleVarsTimer", "OnSniffConsoleVarsTimer", self)
-        Apollo.CreateTimer("SniffConsoleVarsTimer", 1, true)
+        Apollo.CreateTimer("SniffConsoleVarsTimer", 2, true)
 	end
 end
 
@@ -122,8 +121,8 @@ function PerspectivePlates:OnRestore(eType, t)
     end
 
 	xpcall(function()
-			local settings = table.ShallowCopy(self.settings)
-			table.ShallowMerge(t, settings)
+			local settings = LuaUtils:ShallowCopy(self.settings)
+			LuaUtils:ShallowMerge(t, settings)
 			
 			-- validate user data
             assert(type(settings.zoom) == "number")
@@ -139,9 +138,13 @@ function PerspectivePlates:OnRestore(eType, t)
 		end)
 end
 
--- on Configure button from Addons window
 function PerspectivePlates:OnConfigure()
     self:OnSlashConfig()
+end
+
+function PerspectivePlates:OnSniffConsoleVarsTimer()
+        self.fovY = Apollo.GetConsoleVariable("camera.FovY") or 60
+        self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax") or 32
 end
 
 -----------------------------------------------------------------------------------------------
@@ -213,7 +216,7 @@ function PerspectivePlates:UpdateNameplateVisibility(luaCaller, tNameplate)
 end
 
 -----------------------------------------------------------------------------------------------
--- PerspectivePlates Functions
+-- Extra tweaks of Carbine Nameplates
 -----------------------------------------------------------------------------------------------
 
 function PerspectivePlates:HideHealthNumber(idUnit)
@@ -236,11 +239,6 @@ function PerspectivePlates:ShowHealthNumber(idUnit)
 		function(e)
             Print(tostring(e))
 		end)
-end
-
-function PerspectivePlates:OnSniffConsoleVarsTimer()
-        self.fovY = Apollo.GetConsoleVariable("camera.FovY") or 60
-        self.cameraDistanceMax = Apollo.GetConsoleVariable("camera.distanceMax") or 32
 end
 
 -----------------------------------------------------------------------------------------------
@@ -287,25 +285,6 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, b
     --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("focalFactor: %f; scale: %f; distance: %f", focalFactor, scale, distance)) end
 end
 
-function PerspectivePlates:NameplateRestoreDefaults(tNameplate, settings)
-	xpcall(function()
-			local wnd = tNameplate.wndNameplate
-			
-			if not settings.perspectiveEnabled then
-				wnd:SetScale(1)
-	            local bounds = self.nameplateDefaultBounds
-	            wnd:SetAnchorOffsets(bounds.left, bounds.top, bounds.right, bounds.bottom)
-			end
-			
-			if not settings.fadingEnabled then
-				wnd:SetOpacity(1)
-			end
-		end,
-		function(e)
-			Print(tostring(e))
-		end)
-end
-
 function PerspectivePlates:DistanceToUnit(unitOwner)
 	local unitPlayer = GameLib.GetPlayerUnit()
 
@@ -327,6 +306,25 @@ function PerspectivePlates:DistanceToUnit(unitOwner)
 	return math.sqrt((nDeltaX * nDeltaX) + (nDeltaY * nDeltaY) + (nDeltaZ * nDeltaZ))
 end
 
+function PerspectivePlates:NameplateRestoreDefaults(tNameplate, settings)
+	xpcall(function()
+			local wnd = tNameplate.wndNameplate
+			
+			if not settings.perspectiveEnabled then
+				wnd:SetScale(1)
+	            local bounds = self.nameplateDefaultBounds
+	            wnd:SetAnchorOffsets(bounds.left, bounds.top, bounds.right, bounds.bottom)
+			end
+			
+			if not settings.fadingEnabled then
+				wnd:SetOpacity(1)
+			end
+		end,
+		function(e)
+			Print(tostring(e))
+		end)
+end
+
 -----------------------------------------------------------------------------------------------
 -- PerspectivePlatesForm Functions
 -----------------------------------------------------------------------------------------------
@@ -340,8 +338,8 @@ end
 function PerspectivePlates:GenerateModel()
 	self.model = {}
 
-    self.model.previousSettings = table.ShallowCopy(self.settings)
-	self.model.settings = table.ShallowCopy(self.settings)
+    self.model.previousSettings = LuaUtils:ShallowCopy(self.settings)
+	self.model.settings = LuaUtils:ShallowCopy(self.settings)
 	
 	self.model.isDefaultNameplates = self.addonNameplates ~= nil
 end
@@ -447,14 +445,6 @@ end
 -- Optional parameters
 --   scale:  custom nameplate scale
 --   bounds: custom dimensions of your nameplate
---
--- Performance tip
---   If looping this call within a function, you can get better performance by having the call
---   stored in a local variable:
---   local fnOnRequestedResize = Apollo.GetAddon("PerspectivePlates").OnRequestedResize
---   for idx, tNameplate in pairs(arUnit2Nameplate) do
---      fnOnRequestedResize(self, tNameplate, nil, nil)
---   end
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:OnRequestedResize(tNameplate, scale, bounds)
     if self.settings.perspectiveEnabled or self.settings.fadingEnabled then

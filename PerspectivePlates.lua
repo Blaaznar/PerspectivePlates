@@ -37,12 +37,6 @@ function PerspectivePlates:new(o)
 	self.settings.hideHitpoints = true
     self.settings.zoom = 0.0 
 	self.settings.deadZoneDist = 10
-
-    self.nameplateDefaultBounds = {} -- todo: read from nameplate addon data
-    self.nameplateDefaultBounds.left = -150
-    self.nameplateDefaultBounds.top = -93
-    self.nameplateDefaultBounds.right = 150
-    self.nameplateDefaultBounds.bottom =  30
     
     self.fovY = 60
     self.cameraDistanceMax = 32
@@ -173,7 +167,7 @@ function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
 
     -- Prepare new nameplates, preventing initial jumping
     local tNameplate = luaCaller.arUnit2Nameplate[idUnit]
-    self:NameplatePerspectiveResize(tNameplate, nil, self.nameplateDefaultBounds)
+    self:NameplatePerspectiveResize(tNameplate, nil)
 end
 
 function PerspectivePlates:OnFrame(luaCaller)
@@ -182,11 +176,9 @@ function PerspectivePlates:OnFrame(luaCaller)
     
     -- This is responsible for default nameplates perspective
 	if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
-        local defaultBounds = self.nameplateDefaultBounds
-    
         for idx, tNameplate in pairs(arUnit2Nameplate) do
             if tNameplate.bShow then
-                fnResize(self, tNameplate, nil, defaultBounds)
+                fnResize(self, tNameplate, nil)
             end
         end
 	end
@@ -207,7 +199,7 @@ function PerspectivePlates:UpdateNameplateVisibility(luaCaller, tNameplate)
         -- Prevents 'jumpy nameplates'
         local bNewShow = luaCaller:HelperVerifyVisibilityOptions(tNameplate) and luaCaller:CheckDrawDistance(tNameplate)
         if bNewShow then
-            self:NameplatePerspectiveResize(tNameplate, nil, self.nameplateDefaultBounds)
+            self:NameplatePerspectiveResize(tNameplate, nil)
         end
 	end
     
@@ -244,7 +236,7 @@ end
 -----------------------------------------------------------------------------------------------
 -- Main resizing logic
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, bounds)
+function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     if tNameplate == nil then return end
     
     local settings = self.settings
@@ -265,24 +257,37 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset, b
     local focalFactor = fovFactor * cameraDistanceFactor + deadZone
     
     local scale = math.floor(zoom * (1 + focalFactor) / (1 + distance + focalFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
-
+	
     -- lower the sensitivity, the bigger is the performance hit
     if settings.perspectiveEnabled and math.abs(wnd:GetScale() - scale) >= sensitivity then 
+		-- I'm storing the unmodified offsets in the window's own points setting (which is otherwise unused for nameplates)
+		local boundL, boundT, boundR, boundB = self:GetCacheAnchorOffsets(wnd)
+	
         wnd:SetScale(scale)
         
-        local nameplateOffsetH = (bounds.right - bounds.left) * (1 - scale) / 2
-        local nameplateOffsetV = -(bounds.top) * (1 - scale)
+        local nameplateOffsetH = (boundR - boundL) * (1 - scale) / 2
+        local nameplateOffsetV = -(boundT) * (1 - scale)
 
-        -- Oddly enough, this is the biggest hit on performance
-        wnd:SetAnchorOffsets(bounds.left + nameplateOffsetH, bounds.top + nameplateOffsetV, bounds.right + nameplateOffsetH, bounds.bottom + nameplateOffsetV)
+        -- This is the most costly operation processing wise
+        wnd:SetAnchorOffsets(boundL + nameplateOffsetH, boundT + nameplateOffsetV, boundR + nameplateOffsetH, boundB + nameplateOffsetV)
     end 
-    
+	
     -- if settings.fadingEnabled and math.abs(wnd:GetOpacity() - scale) >= sensitivity then 
     --     wnd:SetOpacity(scale) -- This is not working correctly anymore...
     -- end 
     
     -- Debug
     --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("focalFactor: %f; scale: %f; distance: %f", focalFactor, scale, distance)) end
+end
+
+function PerspectivePlates:GetCacheAnchorOffsets(wnd)
+	local L, T, R, B = wnd:GetAnchorPoints()
+	if L == 0 and T == 0 and R == 0 and B == 0 then
+		L, T, R, B = wnd:GetAnchorOffsets()
+		wnd:SetAnchorPoints(L, T, R, B)
+	end	
+	
+	return L, T, R, B
 end
 
 function PerspectivePlates:DistanceToUnit(unitOwner)
@@ -312,8 +317,9 @@ function PerspectivePlates:NameplateRestoreDefaults(tNameplate, settings)
 			
 			if not settings.perspectiveEnabled then
 				wnd:SetScale(1)
-	            local bounds = self.nameplateDefaultBounds
-	            wnd:SetAnchorOffsets(bounds.left, bounds.top, bounds.right, bounds.bottom)
+	            local boundL, boundT, boundR, boundB = self:GetCacheAnchorOffsets(wnd)
+	            wnd:SetAnchorOffsets(boundL, boundT, boundR, boundB)
+				wnd:SetAnchorPoints(0,0,0,0)
 			end
 			
 			if not settings.fadingEnabled then
@@ -374,7 +380,7 @@ function PerspectivePlates:OnOK()
                     end
                     
                     if self.model.settings.perspectiveEnabled or self.model.settings.fadingEnabled then
-                        self:NameplatePerspectiveResize(tNameplate, nil, self.nameplateDefaultBounds)
+                        self:NameplatePerspectiveResize(tNameplate, nil)
                     end
                     
                     if not self.model.settings.perspectiveEnabled or not self.model.settings.fadingEnabled then
@@ -444,27 +450,18 @@ end
 --   tNameplate: requires tNameplate.unitOwner and tNameplate.wndNameplate to be populated
 -- Optional parameters
 --   scale:  custom nameplate scale
---   bounds: custom dimensions of your nameplate
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:OnRequestedResize(tNameplate, scale, bounds)
+function PerspectivePlates:OnRequestedResize(tNameplate, scale)
     if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
-        self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1, bounds or self.nameplateDefaultBounds)
+        self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1)
     end
 end
 
 -----------------------------------------------------------------------------------------------
--- Sets default nameplate dimensions (necessary if different from size of default nameplates)
+-- (OBSOLETE) Sets default nameplate dimensions
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:OnRegisterDefaultBounds(left, top, right, bottom)
-    assert(type(left) == "number")
-    assert(type(top) == "number")
-    assert(type(right) == "number")
-    assert(type(bottom) == "number")
-    
-    self.nameplateDefaultBounds.left = left
-    self.nameplateDefaultBounds.top = top
-    self.nameplateDefaultBounds.right = right
-    self.nameplateDefaultBounds.bottom = bottom
+	-- not used anymore
 end
 
 -----------------------------------------------------------------------------------------------

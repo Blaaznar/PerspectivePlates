@@ -66,6 +66,8 @@ function PerspectivePlates:OnLoad()
     
     Apollo.RegisterEventHandler("GenericEvent_PerspectivePlates_PerspectiveResize", "OnRequestedResize", self)
     Apollo.RegisterEventHandler("GenericEvent_PerspectivePlates_RegisterOffsets", "OnRegisterDefaultBounds", self)
+	Apollo.RegisterEventHandler("GenericEvent_PerspectivePlates_SetAnchorOffsets", "OnSetAnchorOffsets", self)
+	Apollo.RegisterEventHandler("GenericEvent_PerspectivePlates_GetAnchorOffsets", "OnGetAnchorOffsets", self)
 
   	-- Hooks
     self.addonNameplates = Apollo.GetAddon("Nameplates")
@@ -237,7 +239,7 @@ end
 -- Main resizing logic
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
-    if tNameplate == nil then return end
+    if not tNameplate or not tNameplate.wndNameplate or not tNameplate.unitOwner then return end
     
     local settings = self.settings
     if not settings.perspectiveEnabled and not settings.fadingEnabled then return end    
@@ -245,31 +247,28 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     local unitOwner = tNameplate.unitOwner
     local wnd = tNameplate.wndNameplate
 
-    local sensitivity = 0.005
+    local sensitivity = 0.005 -- the lower the sensitivity, the bigger is the performance hit
     local fovFactor = 60 / self.fovY
     local cameraDistanceFactor = (-5 + self.cameraDistanceMax * 1.5)
     local zoom = 1 + settings.zoom * 0.1
     local deadZone = settings.deadZoneDist
-    
+    local focalFactor = fovFactor * cameraDistanceFactor + deadZone
+	
     local distance = self:DistanceToUnit(unitOwner) - deadZone
     if distance < 0 then distance = 0 end
-
-    local focalFactor = fovFactor * cameraDistanceFactor + deadZone
     
     local scale = math.floor(zoom * (1 + focalFactor) / (1 + distance + focalFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
 	
-    -- lower the sensitivity, the bigger is the performance hit
     if settings.perspectiveEnabled and math.abs(wnd:GetScale() - scale) >= sensitivity then 
-		-- I'm storing the unmodified offsets in the window's own points setting (which is otherwise unused for nameplates)
-		local boundL, boundT, boundR, boundB = self:GetCacheAnchorOffsets(wnd)
+		local l, t, r, b = self:GetCacheAnchorOffsets(wnd)
 	
         wnd:SetScale(scale)
         
-        local nameplateOffsetH = (boundR - boundL) * (1 - scale) / 2
-        local nameplateOffsetV = -(boundT) * (1 - scale)
+        local offsetH = (r - l) * (1 - scale) / 2
+        local offsetV = -(t) * (1 - scale)
 
-        -- This is the most costly operation processing wise
-        wnd:SetAnchorOffsets(boundL + nameplateOffsetH, boundT + nameplateOffsetV, boundR + nameplateOffsetH, boundB + nameplateOffsetV)
+        -- this is the most costly operation processing wise
+        wnd:SetAnchorOffsets(l + offsetH, t + offsetV, r + offsetH, b + offsetV)
     end 
 	
     -- if settings.fadingEnabled and math.abs(wnd:GetOpacity() - scale) >= sensitivity then 
@@ -281,13 +280,15 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
 end
 
 function PerspectivePlates:GetCacheAnchorOffsets(wnd)
-	local L, T, R, B = wnd:GetAnchorPoints()
-	if L == 0 and T == 0 and R == 0 and B == 0 then
-		L, T, R, B = wnd:GetAnchorOffsets()
-		wnd:SetAnchorPoints(L, T, R, B)
+	local l, t, r, b = wnd:GetAnchorPoints()
+	if l == 0 and t == 0 and r == 0 and b == 0 then
+		l, t, r, b = wnd:GetAnchorOffsets()
+
+		-- I'm storing the unmodified offsets in the window's own points setting (which is otherwise unused for nameplate windows)
+		wnd:SetAnchorPoints(l, t, r, b)
 	end	
 	
-	return L, T, R, B
+	return l, t, r, b
 end
 
 function PerspectivePlates:DistanceToUnit(unitOwner)
@@ -317,9 +318,9 @@ function PerspectivePlates:NameplateRestoreDefaults(tNameplate, settings)
 			
 			if not settings.perspectiveEnabled then
 				wnd:SetScale(1)
-	            local boundL, boundT, boundR, boundB = self:GetCacheAnchorOffsets(wnd)
-	            wnd:SetAnchorOffsets(boundL, boundT, boundR, boundB)
-				wnd:SetAnchorPoints(0,0,0,0)
+	            local l, t, r, b = self:GetCacheAnchorOffsets(wnd)
+	            wnd:SetAnchorOffsets(l, t, r, b)
+				wnd:SetAnchorPoints(0, 0, 0, 0)
 			end
 			
 			if not settings.fadingEnabled then
@@ -455,6 +456,29 @@ function PerspectivePlates:OnRequestedResize(tNameplate, scale)
     if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
         self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1)
     end
+end
+
+-----------------------------------------------------------------------------------------------
+-- Use this method to modify the anchor offsets as the actual anchor offsets are modified for
+-- the perspective effect
+-----------------------------------------------------------------------------------------------
+function PerspectivePlates:OnSetAnchorOffsets(wnd, left, top, right, bottom)
+	if settings.perspectiveEnabled then
+		wnd:SetAnchorPoints(left, top, right, bottom)
+	else
+		wnd:SetAnchorOffsets(left, top, right, bottom)
+	end
+end
+
+-----------------------------------------------------------------------------------------------
+-- Use this method to get the anchor offsets
+-----------------------------------------------------------------------------------------------
+function PerspectivePlates:OnGetAnchorOffsets(wnd)
+	if settings.perspectiveEnabled then
+		return self:GetCacheAnchorOffsets(wnd)
+	else
+		return wnd:GetAnchorOffsets()
+	end
 end
 
 -----------------------------------------------------------------------------------------------

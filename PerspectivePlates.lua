@@ -74,7 +74,6 @@ function PerspectivePlates:OnLoad()
     if self.addonNameplates ~= nil then
         self:RawHook(self.addonNameplates, "OnUnitCreated")
         self:RawHook(self.addonNameplates, "OnFrame")
-        --self:RawHook(self.addonNameplates, "UpdateNameplateVisibility")
     end
 end
 
@@ -168,8 +167,9 @@ function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
     end
 
     -- Prepare new nameplates, preventing initial jumping
-    local tNameplate = luaCaller.arUnit2Nameplate[idUnit]
-    self:NameplatePerspectiveResize(tNameplate, nil)
+	-- Don't think this is needed anymore...
+    --local tNameplate = luaCaller.arUnit2Nameplate[idUnit]
+    --self:NameplatePerspectiveResize(tNameplate.wndNameplate, tNameplate.unitOwner, nil)
 end
 
 function PerspectivePlates:OnFrame(luaCaller)
@@ -180,33 +180,13 @@ function PerspectivePlates:OnFrame(luaCaller)
 	if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
         for idx, tNameplate in pairs(arUnit2Nameplate) do
             if tNameplate.bShow then
-                fnResize(self, tNameplate, nil)
+                fnResize(self, tNameplate.wndNameplate, tNameplate.unitOwner, nil)
             end
         end
 	end
         
     -- Pass the call back to the original method
     self.hooks[self.addonNameplates].OnFrame(luaCaller)
-end
-
-function PerspectivePlates:UpdateNameplateVisibility(luaCaller, tNameplate)
-	local unitOwner = tNameplate.unitOwner
-    local unitPlayer = luaCaller.unitPlayer
-    
-	if unitOwner ~= nil 
-        and unitOwner:GetPosition() ~= nil 
-        and unitPlayer ~= nil 
-        and unitPlayer:GetPosition() ~= nil 
-    then
-        -- Prevents 'jumpy nameplates'
-        local bNewShow = luaCaller:HelperVerifyVisibilityOptions(tNameplate) and luaCaller:CheckDrawDistance(tNameplate)
-        if bNewShow then
-            self:NameplatePerspectiveResize(tNameplate, nil)
-        end
-	end
-    
-    -- Pass the call back to the original method
-    self.hooks[self.addonNameplates].UpdateNameplateVisibility(luaCaller, tNameplate)
 end
 
 -----------------------------------------------------------------------------------------------
@@ -238,14 +218,11 @@ end
 -----------------------------------------------------------------------------------------------
 -- Main resizing logic
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
-    if not tNameplate or not tNameplate.wndNameplate or not tNameplate.unitOwner then return end
+function PerspectivePlates:NameplatePerspectiveResize(wndNameplate, nameplateOwnerUnit, scaleOffset)
+    if not wndNameplate or not nameplateOwnerUnit then return end
     
     local settings = self.settings
     if not settings.perspectiveEnabled and not settings.fadingEnabled then return end    
-
-    local unitOwner = tNameplate.unitOwner
-    local wnd = tNameplate.wndNameplate
 
     local sensitivity = 0.005 -- the lower the sensitivity, the bigger is the performance hit
     local fovFactor = 60 / self.fovY
@@ -254,52 +231,52 @@ function PerspectivePlates:NameplatePerspectiveResize(tNameplate, scaleOffset)
     local deadZone = settings.deadZoneDist
     local focalFactor = fovFactor * cameraDistanceFactor + deadZone
 	
-    local distance = self:DistanceToUnit(unitOwner) - deadZone
+    local distance = self:DistanceToUnit(nameplateOwnerUnit) - deadZone
     if distance < 0 then distance = 0 end
     
     local scale = math.floor(zoom * (1 + focalFactor) / (1 + distance + focalFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
 	
-    if settings.perspectiveEnabled and math.abs(wnd:GetScale() - scale) >= sensitivity then 
-		local l, t, r, b = self:GetCacheAnchorOffsets(wnd)
+    if settings.perspectiveEnabled and math.abs(wndNameplate:GetScale() - scale) >= sensitivity then 
+		local l, t, r, b = self:GetCacheAnchorOffsets(wndNameplate)
 	
-        wnd:SetScale(scale)
+        wndNameplate:SetScale(scale)
         
         local offsetH = (r - l) * (1 - scale) / 2
         local offsetV = -(t) * (1 - scale)
 
         -- this is the most costly operation processing wise
-        wnd:SetAnchorOffsets(l + offsetH, t + offsetV, r + offsetH, b + offsetV)
+        wndNameplate:SetAnchorOffsets(l + offsetH, t + offsetV, r + offsetH, b + offsetV)
     end 
 	
-    -- if settings.fadingEnabled and math.abs(wnd:GetOpacity() - scale) >= sensitivity then 
-    --     wnd:SetOpacity(scale) -- This is not working correctly anymore...
+    -- if settings.fadingEnabled and math.abs(wndNameplate:GetOpacity() - scale) >= sensitivity then 
+    --     wndNameplate:SetOpacity(scale) -- This is not working correctly anymore...
     -- end 
     
     -- Debug
-    --if unitOwner == GameLib.GetTargetUnit() then Print(string.format("focalFactor: %f; scale: %f; distance: %f", focalFactor, scale, distance)) end
+    -- if nameplateOwnerUnit == GameLib.GetTargetUnit() then Print(string.format("focalFactor: %f; scale: %f; distance: %f", focalFactor, scale, distance)) end
 end
 
-function PerspectivePlates:GetCacheAnchorOffsets(wnd)
-	local l, t, r, b = wnd:GetAnchorPoints()
+function PerspectivePlates:GetCacheAnchorOffsets(wndNameplate)
+	local l, t, r, b = wndNameplate:GetAnchorPoints()
 	if l == 0 and t == 0 and r == 0 and b == 0 then
-		l, t, r, b = wnd:GetAnchorOffsets()
+		l, t, r, b = wndNameplate:GetAnchorOffsets()
 
 		-- I'm storing the unmodified offsets in the window's own points setting (which is otherwise unused for nameplate windows)
-		wnd:SetAnchorPoints(l, t, r, b)
+		wndNameplate:SetAnchorPoints(l, t, r, b)
 	end	
 	
 	return l, t, r, b
 end
 
-function PerspectivePlates:DistanceToUnit(unitOwner)
-	local unitPlayer = GameLib.GetPlayerUnit()
+function PerspectivePlates:DistanceToUnit(ownerUnit)
+	local playerUnit = GameLib.GetPlayerUnit()
 
-	if not unitOwner or not unitPlayer then
+	if not ownerUnit or not playerUnit then
 	    return 0
 	end
 
-	tPosTarget = unitOwner:GetPosition()
-	tPosPlayer = unitPlayer:GetPosition()
+	tPosTarget = ownerUnit:GetPosition()
+	tPosPlayer = playerUnit:GetPosition()
 
 	if tPosTarget == nil then
 		return 0
@@ -381,7 +358,7 @@ function PerspectivePlates:OnOK()
                     end
                     
                     if self.model.settings.perspectiveEnabled or self.model.settings.fadingEnabled then
-                        self:NameplatePerspectiveResize(tNameplate, nil)
+                        self:NameplatePerspectiveResize(tNameplate.wndNameplate, tNameplate.unitOwner, nil)
                     end
                     
                     if not self.model.settings.perspectiveEnabled or not self.model.settings.fadingEnabled then
@@ -445,16 +422,32 @@ end
 -----------------------------------------------------------------------------------------------
 
 -----------------------------------------------------------------------------------------------
--- Applies perspective to a nameplate. Call this before your tNameplate.wndNameplate:Show()
---
--- Required parameter
---   tNameplate: requires tNameplate.unitOwner and tNameplate.wndNameplate to be populated
--- Optional parameters
---   scale:  custom nameplate scale
+-- (OBSOLETE) Please use OnSetAnchorOffsets/OnGetAnchorOffsets
+-----------------------------------------------------------------------------------------------
+function PerspectivePlates:OnRegisterDefaultBounds(left, top, right, bottom)
+end
+
+-----------------------------------------------------------------------------------------------
+-- (OBSOLETE) Please use OnApplyPerspective
 -----------------------------------------------------------------------------------------------
 function PerspectivePlates:OnRequestedResize(tNameplate, scale)
     if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
-        self:NameplatePerspectiveResize(tNameplate, (scale or 1) - 1)
+        self:NameplatePerspectiveResize(tNameplate.wndNameplate, tNameplate.unitOwner, (scale or 1) - 1)
+    end
+end
+
+-----------------------------------------------------------------------------------------------
+-- Applies perspective to a nameplate. Call this before your tNameplate.wndNameplate:Show()
+--
+-- Required parameters
+--   wndNameplate:       the main nameplate window
+--   nameplateOwnerUnit: the character unit owning the nameplate
+-- Optional parameter
+--   scale:  custom nameplate scale
+-----------------------------------------------------------------------------------------------
+function PerspectivePlates:OnApplyPerspective(wndNameplate, nameplateOwnerUnit, scale)
+    if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
+        self:NameplatePerspectiveResize(wndNameplate, nameplateOwnerUnit, (scale or 1) - 1)
     end
 end
 
@@ -462,30 +455,24 @@ end
 -- Use this method to modify the anchor offsets as the actual anchor offsets are modified for
 -- the perspective effect
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:OnSetAnchorOffsets(wnd, left, top, right, bottom)
-	if settings.perspectiveEnabled then
-		wnd:SetAnchorPoints(left, top, right, bottom)
+function PerspectivePlates:OnSetAnchorOffsets(wndNameplate, nameplateOwnerUnit, left, top, right, bottom, scale)
+	if self.settings.perspectiveEnabled then
+		wndNameplate:SetAnchorPoints(left, top, right, bottom)
+		self:NameplatePerspectiveResize(wndNameplate, nameplateOwnerUnit, (scale or 1) - 1)
 	else
-		wnd:SetAnchorOffsets(left, top, right, bottom)
+		wndNameplate:SetAnchorOffsets(left, top, right, bottom)
 	end
 end
 
 -----------------------------------------------------------------------------------------------
 -- Use this method to get the anchor offsets
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:OnGetAnchorOffsets(wnd)
-	if settings.perspectiveEnabled then
-		return self:GetCacheAnchorOffsets(wnd)
+function PerspectivePlates:OnGetAnchorOffsets(wndNameplate)
+	if self.settings.perspectiveEnabled then
+		return self:GetCacheAnchorOffsets(wndNameplate)
 	else
-		return wnd:GetAnchorOffsets()
+		return wndNameplate:GetAnchorOffsets()
 	end
-end
-
------------------------------------------------------------------------------------------------
--- (OBSOLETE) Sets default nameplate dimensions
------------------------------------------------------------------------------------------------
-function PerspectivePlates:OnRegisterDefaultBounds(left, top, right, bottom)
-	-- not used anymore
 end
 
 -----------------------------------------------------------------------------------------------

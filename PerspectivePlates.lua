@@ -455,10 +455,9 @@ end
 -- Use this method to modify the anchor offsets as the actual anchor offsets are modified for
 -- the perspective effect
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:OnSetAnchorOffsets(wndNameplate, nameplateOwnerUnit, left, top, right, bottom, scale)
+function PerspectivePlates:OnSetAnchorOffsets(wndNameplate, left, top, right, bottom)
 	if self.settings.perspectiveEnabled then
 		wndNameplate:SetAnchorPoints(left, top, right, bottom)
-		self:NameplatePerspectiveResize(wndNameplate, nameplateOwnerUnit, (scale or 1) - 1)
 	else
 		wndNameplate:SetAnchorOffsets(left, top, right, bottom)
 	end

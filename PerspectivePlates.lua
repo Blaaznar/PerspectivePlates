@@ -12,7 +12,8 @@ require "Window"
 -----------------------------------------------------------------------------------------------
 -- Packages
 -----------------------------------------------------------------------------------------------
-local LuaUtils = Apollo.GetPackage("Blaz:Lib:LuaUtils-0.2").tPackage:new()
+local Util = Apollo.GetPackage("Blaz:Lib:LuaUtils-0.2").tPackage:new()
+
  
 -----------------------------------------------------------------------------------------------
 -- PerspectivePlates Module Definition
@@ -116,8 +117,8 @@ function PerspectivePlates:OnRestore(eType, t)
     end
 
 	xpcall(function()
-			local settings = LuaUtils:ShallowCopy(self.settings)
-			LuaUtils:ShallowMerge(t, settings)
+			local settings = Util:ShallowCopy(self.settings)
+			Util:ShallowMerge(t, settings)
 			
 			-- validate user data
             assert(type(settings.zoom) == "number")
@@ -322,8 +323,8 @@ end
 function PerspectivePlates:GenerateModel()
 	self.model = {}
 
-    self.model.previousSettings = LuaUtils:ShallowCopy(self.settings)
-	self.model.settings = LuaUtils:ShallowCopy(self.settings)
+    self.model.previousSettings = Util:ShallowCopy(self.settings)
+	self.model.settings = Util:ShallowCopy(self.settings)
 	
 	self.model.isDefaultNameplates = self.addonNameplates ~= nil
 end

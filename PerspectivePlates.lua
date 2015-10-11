@@ -38,6 +38,7 @@ function PerspectivePlates:new(o)
 	self.settings.hideHitpoints = true
     self.settings.zoom = 0.0 
 	self.settings.deadZoneDist = 10
+	self.settings.verticalOffset = 0
     
     self.fovY = 60
     self.cameraDistanceMax = 32
@@ -124,7 +125,9 @@ function PerspectivePlates:OnRestore(eType, t)
             assert(type(settings.zoom) == "number")
             assert(type(settings.perspectiveEnabled) == "boolean")
             assert(type(settings.hideHitpoints) == "boolean")
+			assert(type(self.settings.verticalOffset) == "number")
             
+			assert(settings.verticalOffset >= -30 and settings.verticalOffset <= 30)
 			assert(settings.zoom >= 0 and settings.zoom <= 10)
 			assert(self.settings.deadZoneDist >= 5 and self.settings.deadZoneDist <= 30)
 			
@@ -219,7 +222,7 @@ end
 -----------------------------------------------------------------------------------------------
 -- Main resizing logic
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:NameplatePerspectiveResize(wndNameplate, nameplateOwnerUnit, scaleOffset)
+function PerspectivePlates:NameplatePerspectiveResize(wndNameplate, nameplateOwnerUnit, scaleOffset, forceUpdate)
     if not wndNameplate or not nameplateOwnerUnit then return end
     
     local settings = self.settings
@@ -237,14 +240,16 @@ function PerspectivePlates:NameplatePerspectiveResize(wndNameplate, nameplateOwn
     
     local scale = math.floor(zoom * (1 + focalFactor) / (1 + distance + focalFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
 	
-    if settings.perspectiveEnabled and math.abs(wndNameplate:GetScale() - scale) >= sensitivity then 
+    if forceUpdate or settings.perspectiveEnabled and math.abs(wndNameplate:GetScale() - scale) >= sensitivity then
 		local l, t, r, b = self:GetCacheAnchorOffsets(wndNameplate)
+		t = t - self.settings.verticalOffset
+		b = b - self.settings.verticalOffset
 	
         wndNameplate:SetScale(scale)
-        
+
         local offsetH = (r - l) * (1 - scale) / 2
         local offsetV = -(t) * (1 - scale)
-
+	
         -- this is the most costly operation processing wise
         wndNameplate:SetAnchorOffsets(l + offsetH, t + offsetV, r + offsetH, b + offsetV)
     end 
@@ -330,8 +335,10 @@ function PerspectivePlates:GenerateModel()
 end
 
 function PerspectivePlates:GenerateView()
+    self.wndMain:FindChild("SbDeadZone"):SetValue(self.model.settings.deadZoneDist)
+    
     self.wndMain:FindChild("SbZoom"):SetValue(self.model.settings.zoom)
-	self.wndMain:FindChild("SbDeadZone"):SetValue(self.model.settings.deadZoneDist)
+    self.wndMain:FindChild("SbVerticalOffset"):SetValue(self.model.settings.verticalOffset)
 
 	self.wndMain:FindChild("ChkHideHitpoints"):SetCheck(self.model.settings.hideHitpoints)
 	self.wndMain:FindChild("ChkPerspective"):SetCheck(self.model.settings.perspectiveEnabled)
@@ -359,7 +366,7 @@ function PerspectivePlates:OnOK()
                     end
                     
                     if self.model.settings.perspectiveEnabled or self.model.settings.fadingEnabled then
-                        self:NameplatePerspectiveResize(tNameplate.wndNameplate, tNameplate.unitOwner, nil)
+                        self:NameplatePerspectiveResize(tNameplate.wndNameplate, tNameplate.unitOwner, nil, true)
                     end
                     
                     if not self.model.settings.perspectiveEnabled or not self.model.settings.fadingEnabled then
@@ -408,6 +415,11 @@ end
 function PerspectivePlates:SbDeadZone_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
 	self.model.settings.deadZoneDist = fNewValue
 	self.settings.deadZoneDist = fNewValue
+end
+
+function PerspectivePlates:SbVerticalOffset_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
+	self.model.settings.verticalOffset = fNewValue
+	self.settings.verticalOffset= fNewValue
 end
 
 function PerspectivePlates:ChkFadeNameplates_OnButtonCheck( wndHandler, wndControl, eMouseButton )

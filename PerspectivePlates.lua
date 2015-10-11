@@ -71,8 +71,13 @@ function PerspectivePlates:OnLoad()
 	Apollo.RegisterEventHandler("GenericEvent_PerspectivePlates_SetAnchorOffsets", "OnSetAnchorOffsets", self)
 	Apollo.RegisterEventHandler("GenericEvent_PerspectivePlates_GetAnchorOffsets", "OnGetAnchorOffsets", self)
 
+	self.isCarbineNameplates = Apollo.GetAddon("Nameplates") ~= nil
+	
+	self.addonNameplates = -- list of supported nameplates following Carbine logic and naming
+		   Apollo.GetAddon("Nameplates") 
+		or Apollo.GetAddon("ForgeUI_Nameplates")
+	
   	-- Hooks
-    self.addonNameplates = Apollo.GetAddon("Nameplates")
     if self.addonNameplates ~= nil then
         self:RawHook(self.addonNameplates, "OnUnitCreated")
         self:RawHook(self.addonNameplates, "OnFrame")
@@ -166,14 +171,13 @@ function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
 	
 	self.hooks[self.addonNameplates].OnUnitCreated(luaCaller, unitNew)
 
-	if self.settings.hideHitpoints then 
+	if self.isCarbineNameplates and self.settings.hideHitpoints then 
         self:HideHealthNumber(idUnit)
     end
 
-    -- Prepare new nameplates, preventing initial jumping
-	-- Don't think this is needed anymore...
-    --local tNameplate = luaCaller.arUnit2Nameplate[idUnit]
-    --self:NameplatePerspectiveResize(tNameplate.wndNameplate, tNameplate.unitOwner, nil)
+    -- Prepare new nameplates, preventing initial jump
+    local tNameplate = luaCaller.arUnit2Nameplate[idUnit]
+    if tNameplate then self:NameplatePerspectiveResize(tNameplate.wndNameplate, tNameplate.unitOwner, nil) end
 end
 
 function PerspectivePlates:OnFrame(luaCaller)
@@ -331,7 +335,7 @@ function PerspectivePlates:GenerateModel()
     self.model.previousSettings = Util:ShallowCopy(self.settings)
 	self.model.settings = Util:ShallowCopy(self.settings)
 	
-	self.model.isDefaultNameplates = self.addonNameplates ~= nil
+	self.model.isDefaultNameplates = self.isCarbineNameplates ~= nil
 end
 
 function PerspectivePlates:GenerateView()
@@ -359,12 +363,14 @@ function PerspectivePlates:OnOK()
 	xpcall(function()
             if self.addonNameplates ~= nil then
                 for idx, tNameplate in pairs(self.addonNameplates.arUnit2Nameplate) do
-                    if self.model.settings.hideHitpoints then 
-                        self:HideHealthNumber(idx)
-                    else
-                        self:ShowHealthNumber(idx)
+					if self.isCarbineNameplates then
+						if self.model.settings.hideHitpoints then 
+							self:HideHealthNumber(idx)
+						else
+							self:ShowHealthNumber(idx)
+						end
                     end
-                    
+					
                     if self.model.settings.perspectiveEnabled or self.model.settings.fadingEnabled then
                         self:NameplatePerspectiveResize(tNameplate.wndNameplate, tNameplate.unitOwner, nil, true)
                     end
@@ -374,6 +380,8 @@ function PerspectivePlates:OnOK()
                     end
                 end
             end
+				
+			-- should do ReloadUI for 3rd party nameplate addons
 				
 			self.settings = self.model.settings
 

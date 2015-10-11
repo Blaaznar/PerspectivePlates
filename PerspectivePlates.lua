@@ -335,20 +335,24 @@ function PerspectivePlates:GenerateModel()
     self.model.previousSettings = Util:ShallowCopy(self.settings)
 	self.model.settings = Util:ShallowCopy(self.settings)
 	
-	self.model.isDefaultNameplates = self.isCarbineNameplates ~= nil
+	self.model.isCarbineNameplates = self.isCarbineNameplates
 end
 
 function PerspectivePlates:GenerateView()
-    self.wndMain:FindChild("SbDeadZone"):SetValue(self.model.settings.deadZoneDist)
+	self.wndMain:FindChild("SbDeadZone"):SetValue(self.model.settings.deadZoneDist)
+	self.wndMain:FindChild("LblDeadZoneValue"):SetText(string.format("%im", self.model.settings.deadZoneDist))
     
-    self.wndMain:FindChild("SbZoom"):SetValue(self.model.settings.zoom)
-    self.wndMain:FindChild("SbVerticalOffset"):SetValue(self.model.settings.verticalOffset)
+	self.wndMain:FindChild("SbZoom"):SetValue(self.model.settings.zoom)
+	self.wndMain:FindChild("LblZoomValue"):SetText(string.format("%i%%", 100 + self.model.settings.zoom * 10))
+
+	self.wndMain:FindChild("SbVerticalOffset"):SetValue(self.model.settings.verticalOffset)
+	self.wndMain:FindChild("LblVerticalOffsetValue"):SetText(string.format("%ipx", self.model.settings.verticalOffset))
 
 	self.wndMain:FindChild("ChkHideHitpoints"):SetCheck(self.model.settings.hideHitpoints)
 	self.wndMain:FindChild("ChkPerspective"):SetCheck(self.model.settings.perspectiveEnabled)
     self.wndMain:FindChild("ChkFadeNameplates"):SetCheck(self.model.settings.fadingEnabled)
 
-	if not self.model.isDefaultNameplates then
+	if not self.model.isCarbineNameplates then
 		self.wndMain:FindChild("GrpDefaultNameplates"):Enable(false)
 		self.wndMain:FindChild("GrpDefaultNameplates"):SetOpacity(0.2)
 		self.wndMain:FindChild("LblDefaultNameplates"):SetText("Only for default nameplates")
@@ -402,6 +406,8 @@ end
 function PerspectivePlates:SbZoom_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
 	self.model.settings.zoom = fNewValue
 	self.settings.zoom = fNewValue
+	
+	self:GenerateView()
 end
 
 function PerspectivePlates:ChkHideHitpoints_OnButtonCheck( wndHandler, wndControl, eMouseButton )
@@ -423,11 +429,15 @@ end
 function PerspectivePlates:SbDeadZone_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
 	self.model.settings.deadZoneDist = fNewValue
 	self.settings.deadZoneDist = fNewValue
+	
+	self:GenerateView()
 end
 
 function PerspectivePlates:SbVerticalOffset_OnSliderBarChanged( wndHandler, wndControl, fNewValue, fOldValue )
 	self.model.settings.verticalOffset = fNewValue
 	self.settings.verticalOffset= fNewValue
+
+	self:GenerateView()
 end
 
 function PerspectivePlates:ChkFadeNameplates_OnButtonCheck( wndHandler, wndControl, eMouseButton )

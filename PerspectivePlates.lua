@@ -234,10 +234,9 @@ function PerspectivePlates:NameplatePerspectiveResize(wndNameplate, nameplateOwn
 
     local sensitivity = 0.005 -- the lower the sensitivity, the bigger is the performance hit
     local fovFactor = 70 / self.fovY
-    local cameraDistanceFactor = (-5 + self.cameraDistanceMax * 1.5)
     local zoom = 1 + settings.zoom * 0.1
     local deadZone = settings.deadZoneDist + self.cameraDistanceMax / 4
-    local focalFactor = fovFactor * (cameraDistanceFactor + deadZone)
+	local focalFactor = fovFactor * (2 * self.cameraDistanceMax + deadZone)
 	
     local distance = self:DistanceToUnit(nameplateOwnerUnit) - deadZone
     if distance < 0 then distance = 0 end

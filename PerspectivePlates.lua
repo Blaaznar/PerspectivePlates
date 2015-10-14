@@ -233,11 +233,11 @@ function PerspectivePlates:NameplatePerspectiveResize(wndNameplate, nameplateOwn
     if not settings.perspectiveEnabled and not settings.fadingEnabled then return end    
 
     local sensitivity = 0.005 -- the lower the sensitivity, the bigger is the performance hit
-    local fovFactor = 60 / self.fovY
+    local fovFactor = 70 / self.fovY
     local cameraDistanceFactor = (-5 + self.cameraDistanceMax * 1.5)
     local zoom = 1 + settings.zoom * 0.1
-    local deadZone = settings.deadZoneDist
-    local focalFactor = fovFactor * cameraDistanceFactor + deadZone
+    local deadZone = settings.deadZoneDist + self.cameraDistanceMax / 4
+    local focalFactor = fovFactor * (cameraDistanceFactor + deadZone)
 	
     local distance = self:DistanceToUnit(nameplateOwnerUnit) - deadZone
     if distance < 0 then distance = 0 end

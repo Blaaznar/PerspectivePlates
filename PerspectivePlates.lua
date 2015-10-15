@@ -177,7 +177,7 @@ function PerspectivePlates:OnUnitCreated(luaCaller, unitNew)
 
     -- Prepare new nameplates, preventing initial jump
     local tNameplate = luaCaller.arUnit2Nameplate[idUnit]
-    if tNameplate then self:NameplatePerspectiveResize(tNameplate.wndNameplate, tNameplate.unitOwner, nil) end
+    if tNameplate then self:NameplatePerspectiveResize(tNameplate.wndNameplate, tNameplate.unitOwner, nil, true) end
 end
 
 function PerspectivePlates:OnFrame(luaCaller)
@@ -236,18 +236,18 @@ function PerspectivePlates:NameplatePerspectiveResize(wndNameplate, nameplateOwn
     local fovFactor = 70 / self.fovY
     local zoom = 1 + settings.zoom * 0.1
     local deadZone = settings.deadZoneDist + self.cameraDistanceMax / 4
-	local focalFactor = fovFactor * (2 * self.cameraDistanceMax + deadZone)
+	local focalFactor = fovFactor * (2.718 * self.cameraDistanceMax + settings.deadZoneDist)
 	
     local distance = self:DistanceToUnit(nameplateOwnerUnit) - deadZone
     if distance < 0 then distance = 0 end
     
     local scale = math.floor(zoom * (1 + focalFactor) / (1 + distance + focalFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
 	
-    if forceUpdate or settings.perspectiveEnabled and math.abs(wndNameplate:GetScale() - scale) >= sensitivity then
+    if forceUpdate or settings.perspectiveEnabled and math.abs(wndNameplate:GetScale() - scale) + sensitivity/2 > sensitivity then 
 		local l, t, r, b = self:GetCacheAnchorOffsets(wndNameplate)
 		t = t - self.settings.verticalOffset
 		b = b - self.settings.verticalOffset
-	
+
         wndNameplate:SetScale(scale)
 
         local offsetH = (r - l) * (1 - scale) / 2

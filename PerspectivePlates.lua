@@ -243,7 +243,7 @@ function PerspectivePlates:NameplatePerspectiveResize(wndNameplate, nameplateOwn
     
     local scale = math.floor(zoom * (1 + focalFactor) / (1 + distance + focalFactor) / sensitivity) * sensitivity + (scaleOffset or 0)
 	
-    if forceUpdate or settings.perspectiveEnabled and math.abs(wndNameplate:GetScale() - scale) + sensitivity/2 > sensitivity then 
+    if settings.perspectiveEnabled and (forceUpdate or math.abs(wndNameplate:GetScale() - scale) + sensitivity/2 > sensitivity) then 
 		local l, t, r, b = self:GetCacheAnchorOffsets(wndNameplate)
 		t = t - self.settings.verticalOffset
 		b = b - self.settings.verticalOffset
@@ -473,11 +473,12 @@ end
 --   wndNameplate:       the main nameplate window
 --   nameplateOwnerUnit: the character unit owning the nameplate
 -- Optional parameter
---   scale:  custom nameplate scale
+--   scale:        custom nameplate scale
+--   forceUpdate:  forces the update of nameplate size, scale and position
 -----------------------------------------------------------------------------------------------
-function PerspectivePlates:OnApplyPerspective(wndNameplate, nameplateOwnerUnit, scale)
+function PerspectivePlates:OnApplyPerspective(wndNameplate, nameplateOwnerUnit, scale, forceUpdate)
     if self.settings.perspectiveEnabled or self.settings.fadingEnabled then
-        self:NameplatePerspectiveResize(wndNameplate, nameplateOwnerUnit, (scale or 1) - 1)
+        self:NameplatePerspectiveResize(wndNameplate, nameplateOwnerUnit, (scale or 1) - 1, forceUpdate)
     end
 end
 

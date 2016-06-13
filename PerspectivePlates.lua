@@ -80,6 +80,7 @@ function PerspectivePlates:OnLoad()
   	-- Hooks
     if self.addonNameplates ~= nil then
         self:RawHook(self.addonNameplates, "OnUnitCreated")
+		self:RawHook(self.addonNameplates, "OnUnitDestroyed")
         self:RawHook(self.addonNameplates, "OnFrame")
     end
 end
@@ -197,6 +198,23 @@ function PerspectivePlates:OnFrame(luaCaller)
     self.hooks[self.addonNameplates].OnFrame(luaCaller)
 end
 
+function PerspectivePlates:OnUnitDestroyed(luaCaller, unitOwner)
+	local arUnit2Nameplate = luaCaller.arUnit2Nameplate
+	local idUnit = unitOwner:GetId()
+	
+	if arUnit2Nameplate[idUnit] == nil then
+		return
+	end
+	
+	local tNameplate = arUnit2Nameplate[idUnit]
+	local wndNameplate = tNameplate.wndNameplate
+	
+	-- Pass the call back to the original method
+    self.hooks[self.addonNameplates].OnUnitDestroyed(luaCaller, unitOwner)
+
+	self:RestoreAnchorOffsets(wndNameplate)	
+end
+
 -----------------------------------------------------------------------------------------------
 -- Extra tweaks of Carbine Nameplates
 -----------------------------------------------------------------------------------------------
@@ -277,6 +295,13 @@ function PerspectivePlates:GetCacheAnchorOffsets(wndNameplate)
 	return l, t, r, b
 end
 
+function PerspectivePlates:RestoreAnchorOffsets(wnd)
+	wnd:SetScale(1)
+	local l, t, r, b = self:GetCacheAnchorOffsets(wnd)
+	wnd:SetAnchorOffsets(l, t, r, b)
+	wnd:SetAnchorPoints(0, 0, 0, 0)
+end
+
 function PerspectivePlates:DistanceToUnit(ownerUnit)
 	local playerUnit = GameLib.GetPlayerUnit()
 
@@ -303,10 +328,7 @@ function PerspectivePlates:NameplateRestoreDefaults(tNameplate, settings)
 			local wnd = tNameplate.wndNameplate
 			
 			if not settings.perspectiveEnabled then
-				wnd:SetScale(1)
-	            local l, t, r, b = self:GetCacheAnchorOffsets(wnd)
-	            wnd:SetAnchorOffsets(l, t, r, b)
-				wnd:SetAnchorPoints(0, 0, 0, 0)
+				self:RestoreAnchorOffsets(wnd)
 			end
 			
 			if not settings.fadingEnabled then

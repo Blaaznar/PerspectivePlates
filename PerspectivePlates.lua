@@ -82,6 +82,7 @@ function PerspectivePlates:OnLoad()
         self:RawHook(self.addonNameplates, "OnUnitCreated")
 		self:RawHook(self.addonNameplates, "OnUnitDestroyed")
         self:RawHook(self.addonNameplates, "OnFrame")
+		self:RawHook(self.addonNameplates, "UpdateNameplateVisibility")
     end
 end
 
@@ -213,6 +214,14 @@ function PerspectivePlates:OnUnitDestroyed(luaCaller, unitOwner)
     self.hooks[self.addonNameplates].OnUnitDestroyed(luaCaller, unitOwner)
 
 	self:RestoreAnchorOffsets(wndNameplate)	
+end
+
+function PerspectivePlates:UpdateNameplateVisibility(luaCaller, tNameplate)
+	if self.settings.perspectiveEnabled and luaCaller.nMaxRangeSq < 14400 then
+		luaCaller.nMaxRangeSq = 14400
+	end
+	
+	self.hooks[self.addonNameplates].UpdateNameplateVisibility(luaCaller, tNameplate)
 end
 
 -----------------------------------------------------------------------------------------------
